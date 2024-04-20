@@ -9,10 +9,12 @@ import path from 'path'
 import { corsOptions } from './config/cors';
 import { MulterError } from 'multer';
 import PatternResponses from './utils/PatternResponses';
-import UsersModel from './models/Users';
+import { syncDatabases } from './config/sync';
+import Clients from './routes/Clients'
+import { errorHandler } from './config/ErrorHandler';
 
 if(process.env.ENV == 'HOMOLOG'){
-    UsersModel.sync()
+    syncDatabases()
 }
 
 const app = express();
@@ -27,20 +29,13 @@ app.use(sessionConfig);
 app.use(express.json())
 
 app.use('/auth', Auth);
+app.use('/clients', Clients)
 
 app.use((req: Request, res: Response)=>{
     res.status(404)
     return PatternResponses.error.notFound(res, 'route')
 })
 
-const errorHandler: ErrorRequestHandler = (err, req, res, next)=>{
-    res.status(400);
-
-    if(err instanceof MulterError){
-        return res.json({error: err.code})
-    }
-    return res.json(err)
-}
 app.use(errorHandler)
 
 

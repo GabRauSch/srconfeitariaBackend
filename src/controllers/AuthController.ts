@@ -85,15 +85,15 @@ class AuthController {
         const user = await UsersModel.userByConfirmationCode(userToken)
         console.log(user)
         if(!user){
-            return PatternResponses.error.noRegister(res)
+            // return PatternResponses.error.noRegister(res)
         }
     
-        const updatedUser = await UsersModel.confirmCreation(user, customName);
-        if(!updatedUser){
-            return PatternResponses.error.notUpdated(res)
-        }
+        // const updatedUser = await UsersModel.confirmCreation(user, customName);
+        // if(!updatedUser){
+        //     return PatternResponses.error.notUpdated(res)
+        // }
         
-        return res.json(updatedUser)
+        // return res.json(updatedUser)
     }
     
     static async login(req: Request, res: Response){
@@ -107,7 +107,7 @@ class AuthController {
         const user = await UsersModel.getUserByEmailAndPasswordHash(email, passwordHash);
         
         if(!user){
-            return PatternResponses.error.noRegister(res)
+            // return PatternResponses.error.noRegister(res)
         }
         if(user?.name == null){
             return res.json({error: "Temporary user cannot be logged in"})

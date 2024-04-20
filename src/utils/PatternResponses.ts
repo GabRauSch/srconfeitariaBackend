@@ -69,11 +69,9 @@ class Error {
         const status = 400;
         return PatternResponses.createUnsuccessfullMessage(res, status, message)
     }
-    static noRegister = (res: Response, message?: string, registry?: any)=>{
-        console.error('no register')
-        message = message ? message : "No register for the object";
-        const status = 404
-        return PatternResponses.createUnsuccessfullMessage(res, status, message)
+    static noRegister = (object: string)=>{
+        const error = `No register for '${object}'`
+        return {error, errorType: "Database", code: 11};
     }
     static missingAttributes = (res: Response, attributes: string | string[], message?: string)=>{
         let attributesString: string | string[] = "";
