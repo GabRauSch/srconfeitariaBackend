@@ -2,20 +2,9 @@ import {Request, Response } from 'express';
 import PatternResponses from '../utils/PatternResponses'
 import { generateToken, generateHash } from '../config/passport';
 import { sendEmail } from '../config/email';
-import UsersModel from '../models/Users';
+import UsersModel from '../models/copyUSERS';
 
-class AuthController {
-    static async checkEmailAvailability(req: Request, res: Response){
-        const {email} = req.body;
-        
-        const userExists = await UsersModel.userByEmail(email);
-        if(userExists && userExists.name !== null){
-            return PatternResponses.error.alreadyExists(res, 'user')
-        }
-        
-        return res.json({message: 'Email available'})
-    }
-    
+class AuthController {    
     static async register(req: Request, res: Response){
         const {email, password, customName} = req.body;
     
@@ -53,7 +42,7 @@ class AuthController {
     
         const userCreationId = await UsersModel.createTemporaryUser(email, passwordHash, confirmationCode)
         if(!userCreationId){
-            return PatternResponses.error.notCreated(res, 'user')
+            return PatternResponses.error.notCreated('user')
         }
         
         sendEmail({

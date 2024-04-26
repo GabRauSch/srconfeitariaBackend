@@ -3,11 +3,6 @@ import { ClientsController } from "../controllers/ClientsController";
 
 const router = Router();
 
-router.get('/all/:userId')
-router.get('/:id');
-router.post('/')
-router.put('/:id')
-router.delete('/:id')
-
+router.get('/:userId')
 
 export default router

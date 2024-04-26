@@ -8,32 +8,35 @@ Clients.init({
         primaryKey: true,
         autoIncrement: true
     },
-    storeId: {
-        type:DataTypes.INTEGER,
-        allowNull: false
-    },
-    discount: {
-        type: DataTypes.FLOAT,
-        allowNull: false
-    },
-    discountName: {
-        type: DataTypes.STRING,
-        allowNull: true
-    },
-    endDate: {
-        type: DataTypes.DATE,
-        allowNull: false
-    },
-    createdAt: {
-        type: DataTypes.DATE,
+    userId: {
+        type: DataTypes.INTEGER,
         allowNull: false,
-        defaultValue: DataTypes.NOW
-    }
+        references: {
+            model: 'Users',
+            key: 'id'
+        }
+    },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
+    phone: {
+        type: DataTypes.STRING,
+    },
+    email: {
+        type: DataTypes.STRING,
+    },
+    birthday: {
+        type: DataTypes.DATE,
+    },
+    postalCode: {
+        type: DataTypes.INTEGER,
+    },
 }, {
     sequelize,
-    modelName: 'Client',
+    modelName: 'Clients',
     tableName: 'clients',
-    timestamps: false
+    timestamps: true
 });
 
 export default Clients;

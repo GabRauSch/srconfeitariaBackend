@@ -1,12 +1,15 @@
 import { Optional } from "sequelize";
 import Clients from "../models/Clients";
+import { Location } from "./Location";
 
 export interface ClientsAttributes {
     id: number;
-    storeId: number;
-    discount: number;
-    discountName: string;
-    endDate: Date;
-    createdAt: Date;
+    userId: number;
+    name: string;
+    phone: string;
+    email: string;
+    birthday: Date;
+    postalCode: number;
+    local: Location
 }
-export interface ClientsCreation extends Optional<Clients, 'id' | 'createdAt'> {}
+export interface ClientsCreation extends Optional<Clients, 'id'> {}

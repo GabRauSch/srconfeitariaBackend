@@ -1,5 +1,6 @@
 
 import { Response } from "express"
+import { object } from "joi";
 
 
 class Success {
@@ -71,7 +72,11 @@ class Error {
     }
     static noRegister = (object: string)=>{
         const error = `No register for '${object}'`
-        return {error, errorType: "Database", code: 11};
+        return {error, errorType: "Database", code: 104};
+    }
+    static noRegisterWithId = (object: string, id: number)=>{
+        const error = `No regoster for ${object} with id ${id}`;
+        return {error, errorType: 'Database', code: 105}
     }
     static missingAttributes = (res: Response, attributes: string | string[], message?: string)=>{
         let attributesString: string | string[] = "";
@@ -95,10 +100,9 @@ class Error {
         const status = 400;
         return PatternResponses.createUnsuccessfullMessage(res, status, message)
     }
-    static notCreated = (res: Response, type: string, message?: string)=>{
-        message = message ? message : `${type} could not be created`;
-        const status = 400
-        return PatternResponses.createUnsuccessfullMessage(res, status, message)
+    static notCreated = (object: string)=>{
+        const error = `No register for '${object}'`
+        return {error, errorType: "Database", code: 101};
     }
     static alreadyExists = (res: Response, object: string)=>{
         const message = `${object} already exists`

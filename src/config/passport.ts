@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { ExtractJwt, Strategy as JWTStrategy } from "passport-jwt";
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto'
-import UsersModel, { UserAttributes } from "../models/Users";
+import UsersModel, { UserAttributes } from "../models/copyUSERS";
 
 dotenv.config();
 

@@ -1,30 +1,39 @@
 import { DataTypes } from "sequelize";
+import { PlanPayments } from "../repositories/PlanPayments";
 import sequelize from "../config/mysql";
-import { Configs } from "../repositories/Configs";
 
-Configs.init({
+PlanPayments.init({
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    userId: {
+    planId: {
         type: DataTypes.INTEGER,
         allowNull: false,
         references: {
-            model: 'Users',
+            model: 'Plans',
             key: 'id'
         }
     },
-    toleranceDays: {
+    date: {
+        type: DataTypes.DATE,
+        allowNull: false
+    },
+    value: {
         type: DataTypes.INTEGER,
         allowNull: false
+    },
+    createdAt: {
+        type: DataTypes.DATE,
+        allowNull: false,
+        defaultValue: DataTypes.NOW
     }
 }, {
     sequelize,
-    modelName: 'Config',
-    tableName: 'config',
+    modelName: 'PlanPayments',
+    tableName: 'planPayments',
     timestamps: false
 });
 
-export default Configs
+export default PlanPayments

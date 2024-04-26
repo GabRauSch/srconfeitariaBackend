@@ -1,8 +1,9 @@
-import { DataTypes } from "sequelize";
+import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/mysql";
-import { Configs } from "../repositories/Configs";
+import { Clients } from "../repositories/Clients";
+import { Categories } from "../repositories/Categories";
 
-Configs.init({
+Categories.init({
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
@@ -16,15 +17,15 @@ Configs.init({
             key: 'id'
         }
     },
-    toleranceDays: {
-        type: DataTypes.INTEGER,
+    description: {
+        type: DataTypes.STRING,
         allowNull: false
     }
 }, {
     sequelize,
-    modelName: 'Config',
-    tableName: 'config',
-    timestamps: false
+    modelName: 'Categories',
+    tableName: 'categories',
+    timestamps: true
 });
 
-export default Configs
+export default Categories;
