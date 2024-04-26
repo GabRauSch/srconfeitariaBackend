@@ -1,111 +1,138 @@
 
 // 100 error
+// 300 error with identifies
 
 // 00 database
 // 10 server
 // 20 auth
 // 30 message broker
+// 40 io error
+// 50 logic
+// 60 file
+// 70 external
 
 // 0 generic
 // 1 creation
 // 2 update
 // 3 delete
-// 4 register not fond
-// 5-9 internal
+// 4 not fond
+// 5 invalid
+// 6 logic
+// 7 internal
+// 8 duplicate
 
-const errors = {
+export type errorKey = 'internalServerError' | 'invalidDate' | 'notFound' | 'doesntBelong' | 'noRegister' 
+| 'noRegisterWithId' | 'missingAttributes' | 'invalidAttributes' | 'notCreated' 
+| 'alreadyExists' | 'notDeleted' | 'notUpdated' | 'notAuthorized' | 'imageNotUploaded' 
+| 'wrongCredential' | 'emailNotSent' | 'notSent' | 'databaseError'
+
+export const errorsTypes = {
+    databaseError: {
+        code: 107,
+        message: "Database error",
+        errorType: 'Database',
+        status: 400
+    },
     internalServerError: {
         code: 117,
         message: "Internal server error caused when $1",
-        errorType: 'Server'
+        errorType: 'Server',
+        status: 500
     },
     invalidDate: {
-        code: 101,
+        code: 155,
         message: `not a valid date $1`,
-        errorType: 'Database'
+        errorType: 'Database',
+        status: 400
     },
     notFound: {
-        code: 101,
+        code: 114,
         message: `Not found $1`,
-        errorType: 'Server'
+        errorType: 'Server',
+        status: 404
     },
     doesntBelong: {
-        code: 101,
-        message: `$1 doesn't belong to $2`,
-        errorType: 'Database'
+        code: 106,
+        message: `'$1' doesn't belong to '$2'`,
+        errorType: 'Database',
+        status: 400
     },
     noRegister: {
-        code: 101,
+        code: 104,
         message: `No register for '$1'`,
-        errorType: 'Database'
+        errorType: 'Database',
+        status: 404
     },
     noRegisterWithId: {
-        code: 101,
-        message: `No regoster for $1 with id $2`,
-        errorType: 'Database'
+        code: 304,
+        message: `No register for '$1' with id $2`,
+        errorType: 'Database',
+        status: 404
     },
     missingAttributes: {
-        code: 101,
+        code: 144,
         message: `missing attibutes $1`,
-        errorType: 'Database'
+        errorType: 'InOut',
+        status: 400
     },
     invalidAttributes: {
-        code: 101,
-        message: `No register for $1 with $2,`,
-        errorType: 'Database'
+        code: 145,
+        message: `Invalid attributes $2`,
+        errorType: 'InOut',
+        status: 400
     },
     notCreated: {
         code: 101,
-        message: `No register for $1 with $2,`,
-        errorType: 'Database'
+        message: `$1 couldn't be created`,
+        errorType: 'Database',
+        status: 400
     },
     alreadyExists: {
-        code: 101,
-        message: `$1 already exists`,
-        errorType: 'Database'
-    },
-    notChanged: {
-        code: 101,
-        message: `No register for $1 with $2,`,
-        errorType: 'Database'
+        code: 108,
+        message: `$1 already exists with this $2`,
+        errorType: 'Database',
+        status: 400
     },
     notDeleted: {
-        code: 101,
+        code: 103,
         message: `Couldn't delete $1`,
-        errorType: 'Database'
+        errorType: 'Database',
+        status: 400
     },
     notUpdated: {
-        code: 101,
+        code: 102,
         message: `Couldn't update $1`,
-        errorType: 'Database'
+        errorType: 'Database',
+        status: 400
     },
     notAuthorized: {
-        code: 101,
+        code: 120,
         message: `Not authorized`,
-        errorType: 'Auth'
+        errorType: 'Auth',
+        status: 401
     },
     imageNotUploaded: {
-        code: 101,
+        code: 161,
         message: `Image not uploaded`,
-        errorType: 'Server'
+        errorType: 'File',
+        status: 400
     },
     wrongCredential: {
-        code: 101,
+        code: 146,
         message: `Email and/or password don't match`,
-        errorType: 'Auth'
+        errorType: 'Auth',
+        status: 400
     },
     emailNotSent: {
-        code: 101,
+        code: 171,
         message: `Email wasn't sent to $1`,
-        errorType: 'Database'
+        errorType: 'Database',
+        status: 400
     },
     notSent: {
-        code: 101,
+        code: 131,
         message: `Couldn't send message`,
-        errorType: 'Message Broker'
+        errorType: 'Message Broker',
+        status: 400
     }
 }
-const succes = {
-
-}
-

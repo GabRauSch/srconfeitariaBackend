@@ -6,19 +6,19 @@ import UsersModel from '../models/copyUSERS';
 
 class AuthController {    
     static async register(req: Request, res: Response){
-        const {email, password, customName} = req.body;
+        const {email, password, name} = req.body;
     
-        const nameIsTaken = await UsersModel.userByName(customName);
-        if(nameIsTaken) return PatternResponses.error.alreadyExists(res, 'user with this name') 
+        const nameIsTaken = await UsersModel.userByName(name);
+        if(nameIsTaken) return PatternResponses.createError('alreadyExists', ['name', name]) 
     
         const userExists = await UsersModel.userByEmail(email);
         if(userExists && !userExists.name){
             console.log('user exists')
-            return PatternResponses.error.alreadyExists(res, 'user')
+            return PatternResponses.createError('alreadyExists', ['email', email])
         }
         
         const passwordHash = generateHash(password)
-        const confirmationCode = generateHash(`${customName}:${new Date().getMilliseconds()}`);
+        const confirmationCode = generateHash(`${name}:${new Date().getMilliseconds()}`);
         if(userExists && !userExists.name){
             const updateUser = await UsersModel.update(
                 {confirmationCode},
@@ -30,7 +30,7 @@ class AuthController {
             )
             sendEmail({
                 senderName: "Confirmation email",
-                title: `Confirm signup attempt to user ${customName}`,
+                title: `Confirm signup attempt to user ${name}`,
                 content: confirmationCode,
                 receiver: email
             })
@@ -42,12 +42,12 @@ class AuthController {
     
         const userCreationId = await UsersModel.createTemporaryUser(email, passwordHash, confirmationCode)
         if(!userCreationId){
-            return PatternResponses.error.notCreated('user')
+            return PatternResponses.createError('notCreated', ['user'])
         }
         
         sendEmail({
             senderName: "Confirmation email",
-            title: `Confirm signup attempt to user ${customName}`,
+            title: `Confirm signup attempt to user ${name}`,
             content: confirmationCode,
             receiver: email
         })
@@ -63,12 +63,12 @@ class AuthController {
         const {userToken, customName} = req.body;
     
         if(!userToken || !customName){
-            return PatternResponses.error.missingAttributes(res, 'userToken, custom name')
+            // return PatternResponses.createError()
         }
         const nameIsTaken = await UsersModel.userByName(customName);
         if(nameIsTaken){
             console.log('name is taken')
-            return PatternResponses.error.alreadyExists(res, 'user with name')
+            // return PatternResponses.error.alreadyExists(res, 'user with name')
         }
     
         const user = await UsersModel.userByConfirmationCode(userToken)
@@ -88,7 +88,7 @@ class AuthController {
     static async login(req: Request, res: Response){
         const {email, password} = req.body;
         if(!email || !password){
-            return PatternResponses.error.missingAttributes(res, 'email, password')
+            // return PatternResponses.error.missingAttributes(res, 'email, password')
         }
     
         const passwordHash = generateHash(password)

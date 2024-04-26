@@ -14,12 +14,12 @@ export class OrderPayments extends Model implements OrderPaymentsAttributes{
         try {
             const orderPayments = await OrderPayments.findAll({ where: { orderId } });
             if (!orderPayments.length)
-                return PatternResponses.error.noRegister("order payments");
+                return PatternResponses.createError('noRegister', ['Order Payment']);
 
             return orderPayments;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
         }
     }
 }

@@ -15,28 +15,41 @@ export class Clients extends Model implements ClientsAttributes{
     public postalCode!: number;
     public permission!: number;
 
+
     static async findByUserId(userId: number): Promise<Clients[] | CustomError> {
         try {
             const clients = await Clients.findAll({ where: { userId } });
             if (clients.length === 0) 
-                return PatternResponses.error.noRegister("clients");
+                return PatternResponses.createError('noRegister', ["clients"]);
 
             return clients;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError');
         }
     }
-    static async findById(userId: number): Promise<Clients | CustomError> {
+    static async findByName(userId: number, name: string): Promise<Clients[] | CustomError> {
         try {
-            const client = await Clients.findByPk(userId);
+            const clients = await Clients.findAll({ where: { userId, name } });
+            if (clients.length === 0) 
+                return PatternResponses.createError('noRegister', ["clients"]);
+
+            return clients;
+        } catch (error: any) {
+            console.error(error);
+            return PatternResponses.createError('databaseError');
+        }
+    }
+    static async findById(id: number): Promise<Clients | CustomError> {
+        try {
+            const client = await Clients.findByPk(id);
             if (!client) 
-                return PatternResponses.error.noRegisterWithId("client", userId);
+                return PatternResponses.createError('noRegisterWithId', ["client", id]);
 
             return client;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
         }
     }
 }

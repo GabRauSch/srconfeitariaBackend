@@ -14,12 +14,12 @@ export class Plans extends Model implements PlanAttributes{
         try {
             const orderItems = await Plans.findAll({ where: { orderId } });
             if (!orderItems.length)
-                return PatternResponses.error.noRegister("order items");
+                return PatternResponses.createError('noRegister');
 
             return orderItems;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
         }
     }
 }

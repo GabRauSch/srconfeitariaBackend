@@ -4,6 +4,7 @@ import { PlanAttributes } from "./PlansType";
 export interface UserAttributes {
     id: number,
     planId: number,
+    name: string,
     email: string,
     passwordHash: string,
     active: boolean,

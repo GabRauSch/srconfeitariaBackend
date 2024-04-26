@@ -14,12 +14,12 @@ export class Categories extends Model implements CateogriesAttributes{
         try {
             const client = await Categories.findOne({ where: { userId } });
             if (!client) 
-                return PatternResponses.error.noRegister("clients");
+                return PatternResponses.createError('noRegister', ['user']);
 
             return client;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
         }
     }
 }

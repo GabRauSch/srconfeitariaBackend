@@ -7,7 +7,8 @@ export const errorCodes = [
 ]
 
 export const errorHandler: ErrorRequestHandler = (err, req, res, next)=>{
-    res.status(400);
+    if(!err.status) err.status = 400
+    res.status(err.status);
 
     if(err instanceof MulterError){
         return res.json({error: err.code})

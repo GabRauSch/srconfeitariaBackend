@@ -8,14 +8,6 @@ Plans.init({
         primaryKey: true,
         autoIncrement: true
     },
-    planId: {
-        type: DataTypes.INTEGER,
-        allowNull: false,
-        references:{
-            model: 'Plans',
-            key: 'id'
-        }
-    },
     planValue: {
         type: DataTypes.INTEGER,
         allowNull: false

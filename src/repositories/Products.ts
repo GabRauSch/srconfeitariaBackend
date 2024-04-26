@@ -7,6 +7,7 @@ export class Products extends Model implements ProductAttributes{
     public id!: number;
     public userId!: number;
     public categoryId!: number;
+    public name!: string;
     public description!: string;
     public size!: string;
     public format!: string;
@@ -19,12 +20,36 @@ export class Products extends Model implements ProductAttributes{
         try {
             const orderItems = await Products.findAll({ where: { orderId } });
             if (!orderItems.length)
-                return PatternResponses.error.noRegister("order items");
+                return PatternResponses.createError('noRegister');
 
             return orderItems;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
+        }
+    }
+    static async findByUserId(userId: number): Promise<Products[] | CustomError> {
+        try {
+            const orderItems = await Products.findAll({ where: { userId } });
+            if (!orderItems.length)
+                return PatternResponses.createError('noRegister');
+
+            return orderItems;
+        } catch (error: any) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
+        }
+    }
+    static async findById(id: number): Promise<Products | CustomError> {
+        try {
+            const product = await Products.findByPk(id);
+            if (!product) 
+                return PatternResponses.createError('noRegisterWithId', ["product", id]);
+
+            return product;
+        } catch (error: any) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
         }
     }
 }

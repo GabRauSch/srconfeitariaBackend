@@ -12,12 +12,12 @@ export class Configs extends Model implements ConfigAttributes{
         try {
             const client = await Configs.findOne({ where: { userId } });
             if (!client) 
-                return PatternResponses.error.noRegister("clients");
+                return PatternResponses.createError('noRegister', ['client']);
 
             return client;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
         }
     }
 }

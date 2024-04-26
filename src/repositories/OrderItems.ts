@@ -14,12 +14,26 @@ export class OrderItems extends Model implements OrderItemsAttributes{
         try {
             const orderItem = await OrderItems.findAll({ where: { orderId } });
             if (!orderItem.length)
-                return PatternResponses.error.noRegister("order items");
+                return PatternResponses.createError('noRegister', ['Order Item']);
 
             return orderItem;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
+        }
+    }
+    static async createWithProducts(userId: number, orderId: number, products: any[]): Promise<boolean | CustomError> {
+        try {
+            products.forEach(async (product)=>{
+                await OrderItems.create({
+                    userId, orderId, productId: product.id, quantity: product.quantity 
+                })
+            })
+
+            return true
+        } catch (error: any) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
         }
     }
 }

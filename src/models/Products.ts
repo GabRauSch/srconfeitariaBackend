@@ -24,6 +24,10 @@ Products.init({
             key: 'id'
         }
     },
+    name: {
+        type: DataTypes.STRING,
+        allowNull: false
+    },
     description: {
         type: DataTypes.STRING,
         allowNull: false
@@ -41,11 +45,11 @@ Products.init({
         allowNull: true
     },
     value: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DOUBLE,
         allowNull: false
     },
     productionCost: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.DOUBLE,
         allowNull: false
     },
     photo: {

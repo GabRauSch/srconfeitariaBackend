@@ -50,7 +50,7 @@ app.use('/users', Users)
 
 app.use((req: Request, res: Response)=>{
     res.status(404)
-    return PatternResponses.error.notFound(res, 'route')
+    return PatternResponses.createError('notFound')
 })
 
 app.use(errorHandler)

@@ -13,12 +13,12 @@ export class PlanPayments extends Model implements PlanPaymentAttributes {
         try {
             const orderItems = await PlanPayments.findAll({ where: { orderId } });
             if (!orderItems.length)
-                return PatternResponses.error.noRegister("order items");
+                return PatternResponses.createError('noRegister');
 
             return orderItems;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
         }
     }
 }

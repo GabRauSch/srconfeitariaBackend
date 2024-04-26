@@ -7,6 +7,7 @@ import { userPermission } from "../mapping/userPermission";
 export class Users extends Model implements UserAttributes{
     public id!: number;
     public planId!: number;
+    public name!: string;
     public email!: string;
     public passwordHash!: string;
     public active!: boolean;
@@ -18,12 +19,12 @@ export class Users extends Model implements UserAttributes{
         try {
             const orderItems = await Users.findAll({ where: { orderId } });
             if (!orderItems.length)
-                return PatternResponses.error.noRegister("order items");
+                return PatternResponses.createError('noRegister');
 
             return orderItems;
         } catch (error: any) {
             console.error(error);
-            return { error: error.message, errorType: "Database", code: 11 };
+            return PatternResponses.createError('databaseError')
         }
     }
 }
