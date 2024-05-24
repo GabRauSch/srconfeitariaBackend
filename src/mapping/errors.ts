@@ -24,7 +24,7 @@
 export type errorKey = 'internalServerError' | 'invalidDate' | 'notFound' | 'doesntBelong' | 'noRegister' 
 | 'noRegisterWithId' | 'missingAttributes' | 'invalidAttributes' | 'notCreated' 
 | 'alreadyExists' | 'notDeleted' | 'notUpdated' | 'notAuthorized' | 'imageNotUploaded' 
-| 'wrongCredential' | 'emailNotSent' | 'notSent' | 'databaseError'
+| 'wrongCredential' | 'emailNotSent' | 'notSent' | 'databaseError' | 'invalid'
 
 export const errorsTypes = {
     databaseError: {
@@ -50,6 +50,13 @@ export const errorsTypes = {
         message: `Not found $1`,
         errorType: 'Server',
         status: 404
+    },
+    
+    invalid: {
+        code: 1000,
+        message: `Invalid $1 cause it $2`,
+        errorType: 'Server',
+        status: 400
     },
     doesntBelong: {
         code: 106,

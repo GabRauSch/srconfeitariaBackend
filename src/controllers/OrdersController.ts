@@ -3,7 +3,8 @@ import { idValidation } from "../validation/GlobalValidation";
 import Orders from "../models/Orders";
 import { orderCreation, orderUpdateValidation } from "../validation/OrdersValidation";
 import PatternResponses from "../utils/PatternResponses";
-import { OrderItems } from "../repositories/OrderItems";
+import OrderItems from "../models/OrderItems";
+import Clients from "../models/Clients";
 
 export class OrdersController {
     static async getAllByUserId(req: Request, res: Response, next: NextFunction){
@@ -38,10 +39,15 @@ export class OrdersController {
     static async getAggregateProduct(req: Request, res: Response, next: NextFunction){
         const {userId} = req.params;
 
+        console.log('oi')
+
         const {error} = idValidation.validate(userId);
         if(error) return next({error: error.details[0].message})
 
-        const orders = await Orders.findByUserIdAggregateProduct(parseInt(userId))
+        const orders = await Orders.findByUserIdAggregateProduct(parseInt(userId));
+        if('error' in orders) return next(orders);
+       
+        res.json(orders)
     }
 
     static async create(req: Request, res: Response, next: NextFunction){
@@ -55,14 +61,22 @@ export class OrdersController {
 
         if(!orderData.orderStatus) orderData.orderStatus = 0;
 
+        const isClientActive = await Clients.findById(data.clientId);
+        console.log(isClientActive)
+        if(('error' in isClientActive) || !isClientActive.active){
+            return res.json(PatternResponses.createError('invalid', ['client', 'doesn\'t exist or is inactive']))
+        }
+
         const order = await Orders.create(orderData);
         if('error' in order) return res.json(PatternResponses.createError('notCreated', ['Order']))
 
+
         const orderItems = await OrderItems.createWithProducts(orderData.userId, order.id, products);
 
-        // if(orderItems) {
-        //     order.destroy()
-        // }
+        if(typeof orderItems == 'object' && 'error' in orderItems) {
+            order.destroy();
+            return res.json(orderItems)
+        }
 
         return res.json(order)
     }
@@ -75,9 +89,14 @@ export class OrdersController {
             return next({error: error.details[0].message})
         } 
 
-        const order = await Orders.update(data, {where: {id}});
+        const order = await Orders.findById(parseInt(id))
         
-        if(!order) return res.json(PatternResponses.createError('notUpdated', ['Order'])) 
+        if('error' in order) return res.json(order)
+        const orderUpdate = await Orders.update(data, {where: {id}});
+        const [rowsAffected] = orderUpdate;
+        console.log(rowsAffected)
+
+        if(rowsAffected === 0) return res.json(PatternResponses.createError('notUpdated', ['Order'])) 
 
         return res.json(PatternResponses.createSuccess('updated'))
     }
@@ -91,7 +110,12 @@ export class OrdersController {
 
         if('error' in order) return next(order);
 
-        order.destroy();
+        const orderItemsDelete = await OrderItems.destroyByOrderId(parseInt(id));
+        if('error' in orderItemsDelete) return res.json(PatternResponses.createError('notDeleted', ['OrderItems']))
+
+        const orderDelete = await Orders.destroy({where: {id}})
+        if(!orderDelete) return res.json(PatternResponses.createError('notDeleted', ['Order']))
+
         return res.json(PatternResponses.createSuccess('deleted'))
     }
 }

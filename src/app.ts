@@ -20,6 +20,7 @@ import  PlanPayments from './routes/PlanPayments';
 import  Plans from './routes/Plans';
 import  Products from './routes/Products';
 import Users from './routes/Users';
+import Categories from './routes/Categories'
 
 if(process.env.ENV == 'HOMOLOG'){
     syncDatabases()
@@ -37,6 +38,7 @@ app.use(sessionConfig);
 app.use(express.json())
 
 app.use('/auth', Auth);
+app.use('/categories', Categories)
 app.use('/clients', Clients);
 app.use('/configs', Configs)
 app.use('/orderItems', OrderItems)

@@ -22,7 +22,7 @@
 // 7 internal
 // 8 duplicate
 
-export type successKey = 'updated' | 'deleted'
+export type successKey = 'updated' | 'deleted' | 'created'
 
 export const successTypes = {
     updated: {
@@ -36,5 +36,11 @@ export const successTypes = {
         message: 'Deleted with Success',
         successType: 'Database',
         status: 200
+    },
+    created: {
+        code: 201,
+        message: "Created with success",
+        successType: 'Database',
+        status: 201
     }
 }

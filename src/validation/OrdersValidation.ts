@@ -13,10 +13,8 @@ export const orderCreation = Joi.object({
     })).required()
 })
 export const orderUpdateValidation = Joi.object({
-    orderNumber: Joi.number(),
     deliveryDate: Joi.date(),
     value: Joi.number(),
     deliveryCost: Joi.number(),
-    delivered: Joi.date(),
     orderStatus: Joi.number().min(0).max(2),
 })

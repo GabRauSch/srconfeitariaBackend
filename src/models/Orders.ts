@@ -1,10 +1,9 @@
 import { DataTypes, Model, Order, QueryTypes } from "sequelize";
-import {Users}  from "../repositories/Users";
-import {Clients} from "../repositories/Clients";
 import sequelize from "../config/mysql";
 import { OrderStatus } from "../mapping/orderStatus";
 import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
+import Users from "./Users";
 
 export interface OrderAttributes {
     id: number,
@@ -29,28 +28,34 @@ export class Orders extends Model implements OrderAttributes {
     public orderStatus!: OrderStatus;
     public delivered!: Date;
 
-    static async findByUserId(userId: number): Promise<Orders[] | CustomError> {
+    static async findByUserId(userId: number): Promise<any[] | CustomError> {
         try {
-            const query = 
-            `SELECT 
-                CASE
-                    WHEN DATE(o.deliveryDate) = CURDATE() THEN 'Hoje'
-                    WHEN DATE(o.deliveryDate) = CURDATE() + INTERVAL 1 DAY THEN 'Amanhã'
-                    ELSE DATE_FORMAT(o.deliveryDate, '%d/%m')
-                END AS deliveryDay, 
-                o.orderStatus, SUM(o.value) AS total, c.id, c.name,
-                GROUP_CONCAT(DISTINCT p.name) AS itens
-            FROM orders o
+            const query = `
+                SELECT 
+                    o.deliveryDate AS deliveryDay, 
+                    o.orderStatus AS status, 
+                    CAST(SUM(o.value) AS DECIMAL(10, 2)) AS value, 
+                    c.id, 
+                    c.name AS client,
+                    GROUP_CONCAT(DISTINCT p.name) AS products,
+                    CASE WHEN o.deliveryDate < CURDATE() THEN 1 ELSE 0 END AS delay
+                FROM orders o
                 JOIN clients c ON c.id = o.clientId
                 JOIN orderitems oi ON oi.orderId = o.id
                 JOIN products p ON p.id = oi.productId
-            WHERE o.userId = :userId
-            GROUP BY deliveryDay, o.orderStatus, c.id, c.name
-            ORDER BY deliveryDay;`
-            const orderItems: Orders[] = await sequelize.query(query, {
+                WHERE o.userId = :userId
+                GROUP BY deliveryDay, o.orderStatus, c.id, c.name
+                ORDER BY deliveryDay;
+            `;
+            const orderItems: any[] = await sequelize.query(query, {
                 replacements: {userId},
                 type: QueryTypes.SELECT
             })
+
+            orderItems.forEach(orderItem => {
+                orderItem.products = orderItem.products ? orderItem.products.split(',') : [];
+                orderItem.value = parseFloat(orderItem.value);
+            });
             return orderItems;
         } catch (error: any) {
             console.error(error);
@@ -73,15 +78,41 @@ export class Orders extends Model implements OrderAttributes {
     static async findByUserIdAggregateProduct(userId: number): Promise<Orders[] | CustomError>{
         try {
             const query = 
-            `SELECT p.name, sum(oi.quantity) AS quantity
+            `SELECT p.name, sum(oi.quantity) AS quantity, 
+            MIN(o.orderStatus) AS aggregated_status,
+                CASE
+                    WHEN DATE(o.deliveryDate) = CURDATE() THEN 'Hoje'
+                    WHEN DATE(o.deliveryDate) = CURDATE() + INTERVAL 1 DAY THEN 'Amanhã'
+                    ELSE DATE_FORMAT(o.deliveryDate, '%d/%m/%y')
+                END AS deliveryDay
                 FROM orders o
                 LEFT JOIN orderitems oi ON oi.orderId = o.id
                 JOIN products p ON p.id = oi.productId
             WHERE o.userId = :userId
-                GROUP BY p.id`
+                GROUP BY deliveryDay, p.id
+                ORDER BY deliveryDay;`
 
             const orders: Orders[] = await sequelize.query(query,{
                 replacements: {userId},
+                type: QueryTypes.SELECT
+            });
+            if (!orders) 
+                return PatternResponses.createError('noRegister');
+
+            return orders;
+        } catch (error) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
+        }
+    }
+
+    static async findByClientId(clientId: number): Promise<Orders[] | CustomError>{
+        try {
+            const query = 
+            `SELECT * FROM orders WHERE clientId = :clientId`
+
+            const orders: Orders[] = await sequelize.query(query,{
+                replacements: {clientId},
                 type: QueryTypes.SELECT
             });
             if (!orders) 
@@ -112,7 +143,6 @@ Orders.init({
     },
     clientId: {
         type: DataTypes.INTEGER,
-        key: typeof Clients,
         allowNull: false,
         references: {
             model: 'Clients',

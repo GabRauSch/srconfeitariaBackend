@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { idValidation } from "../validation/GlobalValidation";
-import { Clients } from "../repositories/Clients";
 import { clientCreationValidation, clientUpdateValidation } from "../validation/ClientsValidation";
 import PatternResponses from "../utils/PatternResponses";
+import Clients from "../models/Clients";
+import Orders from "../models/Orders";
 
 export class ClientsController {
     static async getAllByUserId(req: Request, res: Response, next: NextFunction){
@@ -16,6 +17,7 @@ export class ClientsController {
         const clients = await Clients.findByUserId(parseInt(userId));
 
         if('error' in clients) return next(clients)
+        
         return res.json(clients)
     }
 
@@ -37,6 +39,7 @@ export class ClientsController {
     static async create(req: Request, res: Response, next: NextFunction){
         const data = req.body;
 
+        
         const {error} = clientCreationValidation.validate(data)
         if (error){
             return next({error: error.details[0].message})
@@ -74,8 +77,20 @@ export class ClientsController {
         if (error) return next({error: error.details[0].message})  
 
         const client = await Clients.findById(parseInt(id));
-
         if('error' in client) return next(client);
+
+        const orders = await Orders.findByClientId(parseInt(id))
+
+        if(!('error' in orders) && orders.length > 0){
+            try {
+                await Clients.update({active: false}, {where: {id}})
+            } catch (error) {
+                console.error(error)
+                return next(PatternResponses.createError('notUpdated'))
+            }
+
+            return res.json(PatternResponses.createSuccess('deleted'))
+        } 
 
         client.destroy();
         return res.json(PatternResponses.createSuccess('deleted'))

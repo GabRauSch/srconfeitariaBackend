@@ -1,6 +1,45 @@
-import { DataTypes } from "sequelize";
-import { Users } from "../repositories/Users";
 import sequelize from "../config/mysql";
+import { Model, DataTypes } from "sequelize";
+import { CustomError } from "../types/ErrorType";
+import PatternResponses from "../utils/PatternResponses";
+import { userPermission } from "../mapping/userPermission";
+
+export interface UserAttributes {
+    id: number,
+    planId: number,
+    name: string,
+    email: string,
+    passwordHash: string,
+    active: boolean,
+    phone: string,
+    userPermission: userPermission,
+    acceptedTerms: boolean
+}
+
+export class Users extends Model implements UserAttributes{
+    public id!: number;
+    public planId!: number;
+    public name!: string;
+    public email!: string;
+    public passwordHash!: string;
+    public active!: boolean;
+    public phone!: string;
+    public userPermission!: userPermission;
+    public acceptedTerms!: boolean;
+
+    static async findByOrderId(orderId: number): Promise<Users[] | CustomError> {
+        try {
+            const orderItems = await Users.findAll({ where: { orderId } });
+            if (!orderItems.length)
+                return PatternResponses.createError('noRegister');
+
+            return orderItems;
+        } catch (error: any) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
+        }
+    }
+}
 
 Users.init({
     id: {
