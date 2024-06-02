@@ -38,7 +38,7 @@ export class Clients extends Model implements ClientsAttributes{
             MIN(CASE WHEN o.orderStatus IN (0, 1) THEN o.deliveryDate END) AS nextDeliveryDate,
             CASE WHEN phone IS NULL THEN 'Número não cadastrado' 
                  ELSE phone END AS phone, 
-            COUNT(CASE WHEN o.orderStatus = 1 THEN o.id END) AS orderCount, 
+            COUNT(CASE WHEN o.orderStatus IN (0, 1) THEN o.id END) AS orderCount, 
             CASE WHEN SUM(CASE WHEN o.orderStatus = 1 THEN o.value ELSE 0 END) IS NULL THEN 0 
                  ELSE CAST(SUM(CASE WHEN o.orderStatus = 1 THEN o.value ELSE 0 END) AS FLOAT) END AS totalOrderValue
             FROM clients c

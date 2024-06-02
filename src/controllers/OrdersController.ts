@@ -5,6 +5,7 @@ import { orderCreation, orderUpdateValidation } from "../validation/OrdersValida
 import PatternResponses from "../utils/PatternResponses";
 import OrderItems from "../models/OrderItems";
 import Clients from "../models/Clients";
+import { crossOriginResourcePolicy } from "helmet";
 
 export class OrdersController {
     static async getAllByUserId(req: Request, res: Response, next: NextFunction){
@@ -53,8 +54,11 @@ export class OrdersController {
     static async create(req: Request, res: Response, next: NextFunction){
         const data = req.body;
 
+        console.log(data)
+        
         const {error} = orderCreation.validate(data)
         if (error){
+            console.log(error)
             return next({error: error.details[0].message})
         } 
         const {products, ...orderData} = data;
@@ -62,7 +66,6 @@ export class OrdersController {
         if(!orderData.orderStatus) orderData.orderStatus = 0;
 
         const isClientActive = await Clients.findById(data.clientId);
-        console.log(isClientActive)
         if(('error' in isClientActive) || !isClientActive.active){
             return res.json(PatternResponses.createError('invalid', ['client', 'doesn\'t exist or is inactive']))
         }

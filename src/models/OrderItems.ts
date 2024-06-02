@@ -1,5 +1,5 @@
 import sequelize from "../config/mysql";
-import { Model, DataTypes } from "sequelize";
+import { Model, DataTypes, QueryTypes } from "sequelize";
 import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
 import Product from "../models/Products";
@@ -19,13 +19,44 @@ export class OrderItems extends Model implements OrderItemsAttributes{
     public quantity!: number;
     public finished!: boolean;
 
-    static async findByOrderId(orderId: number): Promise<OrderItems[] | CustomError> {
+    static async findByOrderId(id: number): Promise<any | CustomError> {
         try {
-            const orderItem = await OrderItems.findAll({ where: { orderId } });
-            if (!orderItem.length)
-                return PatternResponses.createError('noRegister', ['Order Item']);
+            const combinedQuery = `
+            SELECT 
+                o.id AS orderId, o.orderStatus, o.orderNumber, o.deliveryDate, o.value AS totalValue, o.deliveryCost, 
+                c.name AS clientName, c.id AS clientId,
+                oi.id AS orderItemId, oi.quantity, oi.finished, 
+                p.id AS productId, p.name AS productName, p.value
+            FROM orders o
+            JOIN clients c ON c.id = o.clientId
+            JOIN orderitems oi ON oi.orderId = o.id
+            JOIN products p ON p.id = oi.productId
+            WHERE o.id = :orderId
+            `;
 
-            return orderItem;
+            const resultCombined: any[] = await sequelize.query(combinedQuery, {
+                replacements: { orderId: id },
+                type: QueryTypes.SELECT
+            });
+
+            const {
+                orderId, orderStatus, orderNumber, deliveryDate, totalValue, deliveryCost, clientName, clientId
+            } = resultCombined[0];
+        
+            const orderItems = resultCombined.map(item => ({
+                orderItemId: item.orderItemId,
+                quantity: item.quantity,
+                finished: item.finished,
+                productId: item.productId,
+                productName: item.productName,
+                value: item.value
+            }));
+        
+            
+            if (!orderItems.length)
+                return PatternResponses.createError('noRegister', ['Order Item']);
+            return {orderId, orderStatus, orderNumber, deliveryDate, totalValue, 
+                deliveryCost, clientName, clientId, items: orderItems};
         } catch (error: any) {
             console.error(error);
             return PatternResponses.createError('databaseError');

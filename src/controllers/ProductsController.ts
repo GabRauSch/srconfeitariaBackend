@@ -80,6 +80,7 @@ export class ProductsController {
             let category;
             if (data.categoryData) {
                 category = await Categories.create({ userId: product.userId, description: data.categoryData.description });
+                data.categoryId = category.id
             }
     
             const [rowsAffected] = await Products.update(data, { where: { id } });
@@ -95,7 +96,7 @@ export class ProductsController {
             return res.json(response);
         } catch (error) {
             console.error(error);
-            return next({ error: 'An error occurred while updating the product.' });
+            return next({ error: 'An error occurred while updating the product.'});
         }
     }
     

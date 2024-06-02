@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { ClientsController } from "../controllers/ClientsController";
+import { OrderItemsController } from "../controllers/OrderItemsController";
 
 const router = Router();
 
-router.get('/:id')
+router.get('/:orderId', OrderItemsController.getByOrderId)
 
 export default router

@@ -31,29 +31,32 @@ export class Orders extends Model implements OrderAttributes {
     static async findByUserId(userId: number): Promise<any[] | CustomError> {
         try {
             const query = `
-                SELECT 
-                    o.deliveryDate AS deliveryDay, 
-                    o.orderStatus AS status, 
-                    CAST(SUM(o.value) AS DECIMAL(10, 2)) AS value, 
-                    c.id, 
-                    c.name AS client,
-                    GROUP_CONCAT(DISTINCT p.name) AS products,
-                    CASE WHEN o.deliveryDate < CURDATE() THEN 1 ELSE 0 END AS delay
-                FROM orders o
-                JOIN clients c ON c.id = o.clientId
-                JOIN orderitems oi ON oi.orderId = o.id
-                JOIN products p ON p.id = oi.productId
-                WHERE o.userId = :userId
-                GROUP BY deliveryDay, o.orderStatus, c.id, c.name
-                ORDER BY deliveryDay;
-            `;
+            SELECT 
+                o.deliveryDate AS deliveryDay, 
+                o.id AS orderId,
+                o.orderStatus AS status, 
+                CAST(SUM(o.value) AS DECIMAL(10, 2)) AS value, 
+                c.id AS clientId, 
+                c.name AS client,
+                JSON_ARRAYAGG(JSON_OBJECT(
+                    'id', p.id, 
+                    'name', p.name, 
+                    'quantity', oi.quantity,
+                    'finished', oi.finished
+                )) AS products
+            FROM orders o
+            JOIN clients c ON c.id = o.clientId
+            JOIN orderitems oi ON oi.orderId = o.id
+            JOIN products p ON p.id = oi.productId
+            WHERE o.userId = :userId AND c.active = 1
+            GROUP BY o.id
+            ORDER BY deliveryDay;`;
             const orderItems: any[] = await sequelize.query(query, {
                 replacements: {userId},
                 type: QueryTypes.SELECT
             })
 
             orderItems.forEach(orderItem => {
-                orderItem.products = orderItem.products ? orderItem.products.split(',') : [];
                 orderItem.value = parseFloat(orderItem.value);
             });
             return orderItems;

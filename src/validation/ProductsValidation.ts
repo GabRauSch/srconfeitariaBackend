@@ -29,4 +29,4 @@ export const productUpdateValidation = Joi.object({
     categoryData: Joi.object({
         description: Joi.string().min(3).max(15).required()
     }),
-}).or('categoryId', 'categoryData').required();
+});
