@@ -5,6 +5,7 @@ import { orderCreation, orderUpdateValidation } from "../validation/OrdersValida
 import PatternResponses from "../utils/PatternResponses";
 import OrderItems from "../models/OrderItems";
 import Clients from "../models/Clients";
+import { orderItemUpdateValidation } from "../validation/OrderItemsValidation";
 
 export class OrderItemsController {
     static async getByOrderId(req: Request, res: Response, next: NextFunction){
@@ -102,6 +103,26 @@ export class OrderItemsController {
 
         return res.json(PatternResponses.createSuccess('updated'))
     }
+    static async addProductToOrder(req: Request, res: Response, next: NextFunction){
+        const {orderId} = req.params;
+        const data = req.body;
+
+        console.log(orderId)
+
+        const {error} = orderItemUpdateValidation.validate(data);
+        if (error) return next({error: error.details[0].message});
+
+        try {
+            const orderItem = await OrderItems.create({orderId, productId: data.productId, quantity: data.quantity, finished: false})
+            if(!orderItem) return next(PatternResponses.createError('notCreated', ['OrderItem']));
+
+            return res.json(orderItem)
+        } catch (error) {
+            console.error(error);
+            return next(error)
+        }
+    }
+
     static async delete(req: Request, res: Response, next: NextFunction){
         const {id} = req.params;
 

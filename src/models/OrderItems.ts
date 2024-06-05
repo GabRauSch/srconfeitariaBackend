@@ -133,4 +133,18 @@ OrderItems.init({
     timestamps: true
 });
 
+OrderItems.addHook('beforeCreate', async (orderItem: any, { transaction }) => {
+    try {
+      const existingItem = await OrderItems.findOne({
+        where: { productId: orderItem.productId, orderId: orderItem.orderId },
+        transaction,
+      });
+  
+      if(existingItem) throw PatternResponses.createError('alreadyExists', ['orderItem', 'product'])
+    } catch (error: any) {
+      console.error(error);
+      throw error;
+    }
+  });
+
 export default OrderItems;
