@@ -35,7 +35,7 @@ export class Orders extends Model implements OrderAttributes {
                 o.deliveryDate AS deliveryDay, 
                 o.id AS orderId,
                 o.orderStatus AS status, 
-                CAST(SUM(o.value) AS DECIMAL(10, 2)) AS value, 
+                CAST(SUM(p.value * oi.quantity) AS DECIMAL(10, 2)) AS value, 
                 c.id AS clientId, 
                 c.name AS client,
                 JSON_ARRAYAGG(JSON_OBJECT(

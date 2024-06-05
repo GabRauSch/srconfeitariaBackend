@@ -93,6 +93,52 @@ export class OrderItems extends Model implements OrderItemsAttributes{
             return PatternResponses.createError('databaseError');
         }
     }
+    static async updateItems(orderId: number, data: {productId: number, quantity: number, finished: boolean}[]){
+        const transaction = await sequelize.transaction();
+
+        try {
+            const currentOrderItems = await OrderItems.findAll({
+                where: { orderId: orderId },
+                transaction
+            });
+
+            const currentProductIds = currentOrderItems.map(item => item.productId);
+
+            const newProductIds = data.map(item => item.productId);
+
+            const productIdsToDelete = currentProductIds.filter(id => !newProductIds.includes(id));
+
+            if (productIdsToDelete.length > 0) {
+                await OrderItems.destroy({
+                    where: {
+                        orderId: orderId,
+                        productId: productIdsToDelete
+                    },
+                    transaction
+                });
+            }
+            for (const item of data) {
+                const [orderItem, created] = await OrderItems.findOrCreate({
+                    where: { orderId: orderId, productId: item.productId },
+                    defaults: { quantity: item.quantity, finished: item.finished },
+                    transaction
+                });
+
+                if (!created) {
+                    await orderItem.update({
+                        quantity: item.quantity,
+                        finished: item.finished
+                    }, { transaction });
+                }
+            }
+
+            await transaction.commit();
+            return PatternResponses.createSuccess('updated', ['orderItem'])
+        } catch (err) {
+            await transaction.rollback();
+            throw PatternResponses.createError('databaseError');
+        }
+    }
 }
 
 OrderItems.init({

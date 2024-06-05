@@ -87,21 +87,15 @@ export class OrderItemsController {
         const data = req.body;
         const {id} = req.params
 
-        const {error} = orderUpdateValidation.validate(data)
+        const {error} = orderItemUpdateValidation.validate(data)
         if (error){
             return next({error: error.details[0].message})
         } 
 
-        const order = await Orders.findById(parseInt(id))
-        
-        if('error' in order) return res.json(order)
-        const orderUpdate = await Orders.update(data, {where: {id}});
-        const [rowsAffected] = orderUpdate;
-        console.log(rowsAffected)
+        const updatedOrderItems = await OrderItems.updateItems(parseInt(id), data);
+        if('error' in updatedOrderItems) return next(updatedOrderItems)
 
-        if(rowsAffected === 0) return res.json(PatternResponses.createError('notUpdated', ['Order'])) 
-
-        return res.json(PatternResponses.createSuccess('updated'))
+        return res.json(updatedOrderItems)
     }
     static async addProductToOrder(req: Request, res: Response, next: NextFunction){
         const {orderId} = req.params;
