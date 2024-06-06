@@ -6,6 +6,8 @@ import PatternResponses from "../utils/PatternResponses";
 import OrderItems from "../models/OrderItems";
 import Clients from "../models/Clients";
 import { orderItemUpdateValidation } from "../validation/OrderItemsValidation";
+import { Transaction } from "sequelize";
+import sequelize from "../config/mysql";
 
 export class OrderItemsController {
     static async getByOrderId(req: Request, res: Response, next: NextFunction){
@@ -74,7 +76,8 @@ export class OrderItemsController {
         if('error' in order) return res.json(PatternResponses.createError('notCreated', ['Order']))
 
 
-        const orderItems = await OrderItems.createWithProducts(orderData.userId, order.id, products);
+        const transaction = sequelize.transaction()
+        const orderItems = await OrderItems.createWithProducts(orderData.userId, order.id, products, transaction);
 
         if(typeof orderItems == 'object' && 'error' in orderItems) {
             order.destroy();

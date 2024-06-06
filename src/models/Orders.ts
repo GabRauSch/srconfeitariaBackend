@@ -1,9 +1,10 @@
-import { DataTypes, Model, Order, QueryTypes } from "sequelize";
+import { DataTypes, Model, Order, QueryTypes, Transaction } from "sequelize";
 import sequelize from "../config/mysql";
 import { OrderStatus } from "../mapping/orderStatus";
 import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
 import Users from "./Users";
+import OrderItems from "./OrderItems";
 
 export interface OrderAttributes {
     id: number,
@@ -77,6 +78,32 @@ export class Orders extends Model implements OrderAttributes {
             return PatternResponses.createError('databaseError')
         }
     }
+    static async createOrder(orderData: any, products: any[]) {
+        const transaction = await sequelize.transaction();
+    
+        try {
+            const order = await Orders.create(orderData, { transaction });
+    
+            if (!order) {
+                await transaction.rollback();
+                return PatternResponses.createError('notCreated', ['order']);
+            }
+    
+            const orderItems = await OrderItems.createWithProducts(order.userId, order.id, products, transaction);
+    
+            if (!orderItems) {
+                await transaction.rollback();
+                return PatternResponses.createError('notCreated', ['orderItems']);
+            }
+    
+            await transaction.commit();
+            return order;
+        } catch (error: any) {
+            await transaction.rollback();
+            console.error(error);
+            return PatternResponses.createError('databaseError');
+        }
+    }
 
     static async findByUserIdAggregateProduct(userId: number): Promise<Orders[] | CustomError>{
         try {
@@ -106,6 +133,27 @@ export class Orders extends Model implements OrderAttributes {
         } catch (error) {
             console.error(error);
             return PatternResponses.createError('databaseError')
+        }
+    }
+    static async updateValue(orderItem: any, transaction: any){
+        try {
+            const query = 
+                `SELECT sum(oi.value * oi.quantity) as value FROM orderitems oi
+                    JOIN orders o ON o.id = oi.orderId
+                    JOIN products p ON p.id = oi.productId
+                WHERE o.id = :orderId`;
+            const result: any = await sequelize.query(query, {
+                replacements: {orderId: orderItem.orderId},
+                type: QueryTypes.SELECT,
+                transaction
+            })
+            const value = result[0]['value']
+            const order = await Orders.update({value}, {where: {id: orderItem.orderId}, transaction});
+    
+            if(!order) transaction?.rollback()
+        } catch (error) {
+            console.error(error);
+            throw error;
         }
     }
 
@@ -161,8 +209,8 @@ Orders.init({
         allowNull: false
     },
     value: {
-        type: DataTypes.INTEGER,
-        allowNull: false
+        type: DataTypes.FLOAT,
+        defaultValue: 0
     },
     deliveryCost: {
         type: DataTypes.INTEGER,
@@ -184,7 +232,8 @@ Orders.init({
 
 Orders.addHook('beforeCreate', async (order: any, { transaction }) => {
     try {
-      const lastOrder = await Orders.findOne({
+     
+    const lastOrder = await Orders.findOne({
         where: { userId: order.userId },
         order: [['createdAt', 'DESC']],
         transaction,
@@ -196,4 +245,5 @@ Orders.addHook('beforeCreate', async (order: any, { transaction }) => {
       throw error;
     }
   });
+
 export default Orders

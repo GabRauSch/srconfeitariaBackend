@@ -1,8 +1,9 @@
 import sequelize from "../config/mysql";
-import { Model, DataTypes, QueryTypes } from "sequelize";
+import { Model, DataTypes, QueryTypes, where, Transaction } from "sequelize";
 import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
 import Product from "../models/Products";
+import Orders from "./Orders";
 
 export interface OrderItemsAttributes {
     id: number,
@@ -26,7 +27,7 @@ export class OrderItems extends Model implements OrderItemsAttributes{
                 o.id AS orderId, o.orderStatus, o.orderNumber, o.deliveryDate, o.value AS totalValue, o.deliveryCost, 
                 c.name AS clientName, c.id AS clientId,
                 oi.id AS orderItemId, oi.quantity, oi.finished, 
-                p.id AS productId, p.name AS productName, p.value
+                p.id AS productId, p.name AS productName, oi.value
             FROM orders o
             JOIN clients c ON c.id = o.clientId
             JOIN orderitems oi ON oi.orderId = o.id
@@ -63,19 +64,24 @@ export class OrderItems extends Model implements OrderItemsAttributes{
         }
     }
 
-    static async createWithProducts(userId: number, orderId: number, products: any[]): Promise<boolean | CustomError> {
+    static async createWithProducts(userId: number, orderId: number, products: any[], transaction: any): Promise<boolean | CustomError> {
         try {
             for (const product of products) {
-                const productRecord = await Product.findOne({ where: { id: product.id, userId } });
-                if (!productRecord)
-                    return PatternResponses.createError('invalid', [`product`, 'doesn\'t belong to the user']);
-
+                const productRecord = await Product.findOne({ where: { id: product.id, userId }, transaction });
+                if (!productRecord) {
+                    return PatternResponses.createError('invalid', ['product', "doesn't belong to the user"]);
+                }
+    
                 const creation = await OrderItems.create({
-                    orderId, productId: product.id, quantity: product.quantity 
-                });
+                    orderId,
+                    productId: product.id,
+                    quantity: product.quantity,
+                    value: product.value,
+                }, { transaction });
+    
                 if (!creation) throw new Error();
             }
-
+    
             return true;
         } catch (error: any) {
             console.error(error);
@@ -163,6 +169,9 @@ OrderItems.init({
             key: 'id'
         }
     },
+    value: {
+        type: DataTypes.DOUBLE
+    },
     quantity: {
         type: DataTypes.INTEGER,
         allowNull: false
@@ -186,11 +195,15 @@ OrderItems.addHook('beforeCreate', async (orderItem: any, { transaction }) => {
         transaction,
       });
   
-      if(existingItem) throw PatternResponses.createError('alreadyExists', ['orderItem', 'product'])
+      if(existingItem) throw PatternResponses.createError('alreadyExists', ['orderItem', 'product']);
     } catch (error: any) {
       console.error(error);
       throw error;
     }
   });
+
+OrderItems.addHook('afterCreate', (orderItem, {transaction})=>Orders.updateValue(orderItem, transaction))
+OrderItems.addHook('afterDestroy', (orderItem, {transaction})=>Orders.updateValue(orderItem, transaction))
+OrderItems.addHook('afterUpdate', (orderItem, {transaction})=>Orders.updateValue(orderItem, transaction))
 
 export default OrderItems;

@@ -51,38 +51,31 @@ export class OrdersController {
         res.json(orders)
     }
 
-    static async create(req: Request, res: Response, next: NextFunction){
+    
+    static async create(req: Request, res: Response, next: NextFunction) {
         const data = req.body;
 
-        console.log(data)
-        
-        const {error} = orderCreation.validate(data)
-        if (error){
-            console.log(error)
-            return next({error: error.details[0].message})
-        } 
-        const {products, ...orderData} = data;
+        const { error } = orderCreation.validate(data);
+        if (error) {
+            console.log(error);
+            return next({ error: error.details[0].message });
+        }
+        const { products, ...orderData } = data;
 
-        if(!orderData.orderStatus) orderData.orderStatus = 0;
+        if (!orderData.orderStatus) orderData.orderStatus = 0;
 
         const isClientActive = await Clients.findById(data.clientId);
-        if(('error' in isClientActive) || !isClientActive.active){
-            return res.json(PatternResponses.createError('invalid', ['client', 'doesn\'t exist or is inactive']))
+        if ('error' in isClientActive || !isClientActive.active) {
+            return res.json(PatternResponses.createError('invalid', ['client', "doesn't exist or is inactive"]));
         }
 
-        const order = await Orders.create(orderData);
-        if('error' in order) return res.json(PatternResponses.createError('notCreated', ['Order']))
+        const order = await Orders.createOrder(orderData, products);
+        if ('error' in order) return next(PatternResponses.createError('notCreated', ['Order']));
 
-
-        const orderItems = await OrderItems.createWithProducts(orderData.userId, order.id, products);
-
-        if(typeof orderItems == 'object' && 'error' in orderItems) {
-            order.destroy();
-            return res.json(orderItems)
-        }
-
-        return res.json(order)
+        console.log(order);
+        return res.json(order);
     }
+    
     static async update(req: Request, res: Response, next: NextFunction){
         const data = req.body;
         const {id} = req.params
