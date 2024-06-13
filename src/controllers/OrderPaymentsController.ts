@@ -9,7 +9,7 @@ import { orderItemUpdateValidation } from "../validation/OrderItemsValidation";
 import OrderPayments from "../models/OrderPayments";
 import { orderPaymentCreation } from "../validation/OrderPaymentsValidation";
 
-export class OrderItemsController {
+export class OrderPaymentsController {
     static async getByOrderId(req: Request, res: Response, next: NextFunction){
         const {orderId} = req.params;
 
@@ -55,6 +55,7 @@ export class OrderItemsController {
 
     static async create(req: Request, res: Response, next: NextFunction){
         const data = req.body;
+        console.log(data)
 
         const {error} = orderPaymentCreation.validate(data)
         if (error){
@@ -62,7 +63,11 @@ export class OrderItemsController {
             return next({error: error.details[0].message})
         } 
         
-        const orderPayment = OrderPayments.createOrderPayment(data)
+        
+        const orderPayment = await OrderPayments.createOrderPayment(data);
+        if('error' in orderPayment) return next(orderPayment)
+
+        return res.json(orderPayment)
     }
     static async update(req: Request, res: Response, next: NextFunction){
         const data = req.body;
@@ -73,10 +78,10 @@ export class OrderItemsController {
             return next({error: error.details[0].message})
         } 
 
-        const updatedOrderItems = await OrderItems.updateItems(parseInt(id), data);
-        if('error' in updatedOrderItems) return next(updatedOrderItems)
+        // const updatedOrderItems = await OrderItems.updateItems(parseInt(id), data);
+        // if('error' in updatedOrderItems) return next(updatedOrderItems)
 
-        return res.json(updatedOrderItems)
+        // return res.json(updatedOrderItems)
     }
     static async addProductToOrder(req: Request, res: Response, next: NextFunction){
         const {orderId} = req.params;
@@ -99,21 +104,16 @@ export class OrderItemsController {
     }
 
     static async delete(req: Request, res: Response, next: NextFunction){
-        const {id} = req.params;
+        const {orderId} = req.params;
+        console.log(orderId)
 
-        const {error} = idValidation.validate(id)
+        const {error} = idValidation.validate(orderId)
         if (error) return next({error: error.details[0].message})  
 
-        const order = await Orders.findById(parseInt(id));
+        const order = await OrderPayments.deleteById(parseInt(orderId));
 
-        if('error' in order) return next(order);
-
-        const orderItemsDelete = await OrderItems.destroyByOrderId(parseInt(id));
-        if('error' in orderItemsDelete) return res.json(PatternResponses.createError('notDeleted', ['OrderItems']))
-
-        const orderDelete = await Orders.destroy({where: {id}})
-        if(!orderDelete) return res.json(PatternResponses.createError('notDeleted', ['Order']))
-
-        return res.json(PatternResponses.createSuccess('deleted'))
+            if('error' in order) return next(order);
+            
+            return res.json(PatternResponses.createSuccess('deleted'))
     }
 }

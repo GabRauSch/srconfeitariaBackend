@@ -54,7 +54,7 @@ export const errorsTypes = {
     
     invalid: {
         code: 1000,
-        message: `Invalid $1 cause it $2`,
+        message: `Invalid $1 because it $2`,
         errorType: 'Server',
         status: 400
     },

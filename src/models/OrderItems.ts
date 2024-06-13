@@ -10,8 +10,11 @@ export interface OrderItemsAttributes {
     orderId: number,
     productId: number,
     quantity: number,
-    finished: boolean 
+    finished: boolean,
+    value: number
 }
+
+type orderItemData = {productId: number, quantity: number, finished: boolean}[]
 
 export class OrderItems extends Model implements OrderItemsAttributes{
     public id!: number;
@@ -19,6 +22,7 @@ export class OrderItems extends Model implements OrderItemsAttributes{
     public productId!: number;
     public quantity!: number;
     public finished!: boolean;
+    public value!: number
 
     static async findByOrderId(id: number): Promise<any | CustomError> {
         try {
@@ -99,52 +103,63 @@ export class OrderItems extends Model implements OrderItemsAttributes{
             return PatternResponses.createError('databaseError');
         }
     }
-    static async updateItems(orderId: number, data: {productId: number, quantity: number, finished: boolean}[]){
-        const transaction = await sequelize.transaction();
-
+   
+    static async updateItems(orderId: number, data: OrderItemsAttributes[], transaction: Transaction) {
         try {
             const currentOrderItems = await OrderItems.findAll({
-                where: { orderId: orderId },
+                where: { orderId },
                 transaction
             });
-
+    
             const currentProductIds = currentOrderItems.map(item => item.productId);
-
             const newProductIds = data.map(item => item.productId);
-
             const productIdsToDelete = currentProductIds.filter(id => !newProductIds.includes(id));
-
+    
             if (productIdsToDelete.length > 0) {
                 await OrderItems.destroy({
                     where: {
-                        orderId: orderId,
+                        orderId,
                         productId: productIdsToDelete
                     },
                     transaction
                 });
             }
+    
             for (const item of data) {
-                const [orderItem, created] = await OrderItems.findOrCreate({
-                    where: { orderId: orderId, productId: item.productId },
-                    defaults: { quantity: item.quantity, finished: item.finished },
-                    transaction
-                });
+                try {
+                    const orderItem = await OrderItems.findOne({
+                        where: { orderId, productId: item.productId },
+                        transaction
+                    });
+    
+                    if (!orderItem) {
+                        const createOrderItem = await OrderItems.create({
+                            orderId, quantity: item.quantity, finished: item.finished, value: item.value, productId: item.productId
+                        }, {transaction})
+                    }
 
-                if (!created) {
-                    await orderItem.update({
+                    const [rowsAffected] = await OrderItems.update({
                         quantity: item.quantity,
-                        finished: item.finished
-                    }, { transaction });
+                        finished: item.finished,
+                        value: item.value
+                    }, {
+                        where: { orderId, productId: item.productId },
+                        transaction
+                    });
+                } catch (error: any) {
+                    console.error(`Error during findOrCreate or update for productId ${item.productId}:`, error);
+                    throw PatternResponses.createError('databaseError');
                 }
             }
-
-            await transaction.commit();
-            return PatternResponses.createSuccess('updated', ['orderItem'])
+    
+            return PatternResponses.createSuccess('updated', ['orderItems']);
         } catch (err) {
             await transaction.rollback();
-            throw PatternResponses.createError('databaseError');
+            console.error('Transaction rollback due to error:', err);
+            return PatternResponses.createError('databaseError');
         }
     }
+    
 }
 
 OrderItems.init({
@@ -170,7 +185,7 @@ OrderItems.init({
         }
     },
     value: {
-        type: DataTypes.DOUBLE
+        type: DataTypes.FLOAT
     },
     quantity: {
         type: DataTypes.INTEGER,
@@ -190,20 +205,16 @@ OrderItems.init({
 
 OrderItems.addHook('beforeCreate', async (orderItem: any, { transaction }) => {
     try {
-      const existingItem = await OrderItems.findOne({
-        where: { productId: orderItem.productId, orderId: orderItem.orderId },
-        transaction,
-      });
-  
-      if(existingItem) throw PatternResponses.createError('alreadyExists', ['orderItem', 'product']);
-    } catch (error: any) {
-      console.error(error);
-      throw error;
-    }
-  });
+        const existingItem = await OrderItems.findOne({
+            where: { productId: orderItem.productId, orderId: orderItem.orderId },
+            transaction,
+        });
 
-OrderItems.addHook('afterCreate', (orderItem, {transaction})=>Orders.updateValue(orderItem, transaction))
-OrderItems.addHook('afterDestroy', (orderItem, {transaction})=>Orders.updateValue(orderItem, transaction))
-OrderItems.addHook('afterUpdate', (orderItem, {transaction})=>Orders.updateValue(orderItem, transaction))
+        if (existingItem) throw PatternResponses.createError('alreadyExists', ['orderItem', 'product']);
+    } catch (error: any) {
+        console.error('Error in beforeCreate hook:', error);
+        throw error;
+    }
+});
 
 export default OrderItems;

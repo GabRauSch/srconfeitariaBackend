@@ -135,25 +135,29 @@ export class Orders extends Model implements OrderAttributes {
             return PatternResponses.createError('databaseError')
         }
     }
-    static async updateValue(orderItem: any, transaction: any){
+    static async updateValue(orderId: any, transaction: any){
         try {
+            console.log('not even here')
             const query = 
-                `SELECT sum(oi.value * oi.quantity) as value FROM orderitems oi
+                `SELECT SUM(COALESCE(oi.value, p.value) * oi.quantity) AS value FROM orderitems oi
                     JOIN orders o ON o.id = oi.orderId
                     JOIN products p ON p.id = oi.productId
                 WHERE o.id = :orderId`;
             const result: any = await sequelize.query(query, {
-                replacements: {orderId: orderItem.orderId},
+                replacements: {orderId},
                 type: QueryTypes.SELECT,
                 transaction
             })
             const value = result[0]['value']
-            const order = await Orders.update({value}, {where: {id: orderItem.orderId}, transaction});
+            console.log(value)
+            const order = await Orders.update({value}, {where: {id: orderId}, transaction});
     
-            if(!order) transaction?.rollback()
+            if(!order) return PatternResponses.createError('notUpdated', ['order']);
+
+            return order
         } catch (error) {
             console.error(error);
-            throw error;
+            return PatternResponses.createError('databaseError')
         }
     }
 

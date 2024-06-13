@@ -95,16 +95,26 @@ export class OrderItemsController {
             return next({error: error.details[0].message})
         } 
 
-        const updatedOrderItems = await OrderItems.updateItems(parseInt(id), data);
-        if('error' in updatedOrderItems) return next(updatedOrderItems)
+        const transaction = await sequelize.transaction();
+        const updatedOrderItems = await OrderItems.updateItems(parseInt(id), data, transaction);
 
-        return res.json(updatedOrderItems)
+        if('error' in updatedOrderItems) {
+            transaction.rollback()
+            return next(updatedOrderItems)
+        }
+        const updatedOrder = await Orders.updateValue(parseInt(id), transaction);
+
+        if('error' in updatedOrder) {
+            transaction.rollback()
+            return next(updatedOrderItems)
+        }
+        transaction.commit()
+
+        return res.json(PatternResponses.createSuccess('updated', ['orderItems']))
     }
     static async addProductToOrder(req: Request, res: Response, next: NextFunction){
         const {orderId} = req.params;
         const data = req.body;
-
-        console.log(orderId)
 
         const {error} = orderItemUpdateValidation.validate(data);
         if (error) return next({error: error.details[0].message});

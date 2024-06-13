@@ -4,6 +4,7 @@ export const orderItemUpdateValidation = Joi.array().items(
     Joi.object({
         productId: Joi.number().required(),
         quantity: Joi.number().required(),
-        finished: Joi.boolean().required()
+        finished: Joi.boolean().required(),
+        value: Joi.number().min(0).required()
     })
 );

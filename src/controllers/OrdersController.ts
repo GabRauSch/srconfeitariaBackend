@@ -75,7 +75,7 @@ export class OrdersController {
         console.log(order);
         return res.json(order);
     }
-    
+
     static async update(req: Request, res: Response, next: NextFunction){
         const data = req.body;
         const {id} = req.params
@@ -89,6 +89,7 @@ export class OrdersController {
         
         if('error' in order) return res.json(order)
         const orderUpdate = await Orders.update(data, {where: {id}});
+
         const [rowsAffected] = orderUpdate;
         console.log(rowsAffected)
 
