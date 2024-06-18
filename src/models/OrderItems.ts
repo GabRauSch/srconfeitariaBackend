@@ -44,6 +44,8 @@ export class OrderItems extends Model implements OrderItemsAttributes{
                 type: QueryTypes.SELECT
             });
 
+            if(resultCombined.length == 0) return PatternResponses.createError('noRegister', ['orderItems'])
+
             const {
                 orderId, orderStatus, orderNumber, deliveryDate, totalValue, deliveryCost, clientName, clientId
             } = resultCombined[0];

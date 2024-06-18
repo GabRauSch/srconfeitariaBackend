@@ -1,9 +1,12 @@
 import { Router } from "express";
-import { ClientsController } from "../controllers/ClientsController";
+import { privateRoute } from "../config/passport";
+import { UserController } from "../controllers/UserController";
 
 const router = Router();
+router.use(privateRoute)
 
-router.get('/:id')
+router.get('/:userId', UserController.getById)
+router.put('/:userId', UserController.update)
 
 
 export default router

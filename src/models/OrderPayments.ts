@@ -54,6 +54,7 @@ export class OrderPayments extends Model implements OrderPaymentsAttributes{
                 type: QueryTypes.SELECT
             })
 
+            if(data.length == 0) return PatternResponses.createError('noRegister', ['orderPayment'])
             const {name, id, orderValue, selectedPayment} = data[0]
             
             const paymentsData: payment[] = data[0].paymentValue === null ? [] : data.map(item => ({

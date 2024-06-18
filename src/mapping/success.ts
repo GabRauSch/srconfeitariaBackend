@@ -21,13 +21,20 @@
 // 6 logic
 // 7 internal
 // 8 duplicate
+// 9 sent
 
-export type successKey = 'updated' | 'deleted' | 'created'
+export type successKey = 'updated' | 'deleted' | 'created' | 'emailSent'
 
 export const successTypes = {
     updated: {
         code: 202,
         message: "Updated with success",
+        successType: 'Database',
+        status: 200
+    },
+    emailSent: {
+        code: 279,
+        message: "Email sent",
         successType: 'Database',
         status: 200
     },

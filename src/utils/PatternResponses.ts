@@ -8,19 +8,19 @@ import { successKey, successTypes } from "../mapping/success";
 import { customSuccess } from "../types/SuccessType";
 
 class PatternResponses{
-    static createError(errorKey: errorKey, object?: any[]): CustomError{
+    static createError(errorKey: errorKey, object?: any[], returnMessage?: string): CustomError{
         let message = errorsTypes[errorKey].message.toString();
         if(object){
             object.forEach((replacement: string | number, key: number)=>{
                 message = message.replace(`$${key+1}`, replacement.toString())
             })
         }
-
         const customError = {
             error: message,
             code: errorsTypes[errorKey].code,
             errorType: errorsTypes[errorKey].errorType,
-            status: errorsTypes[errorKey].status
+            status: errorsTypes[errorKey].status,
+            returnMessage
         }
         return customError
     }

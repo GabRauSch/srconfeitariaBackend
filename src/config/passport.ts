@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 import { ExtractJwt, Strategy as JWTStrategy } from "passport-jwt";
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto'
-import UsersModel, { UserAttributes } from "../models/copyUSERS";
+import UsersModel, { UserAttributes } from "../models/Users";
 
 dotenv.config();
 
@@ -44,10 +44,6 @@ export const roleSpecific = (allowedRole: string)=>{
             }
             if (!user) {
                 return next(notAuthorizedJson);
-            }
-
-            if (user.role !== allowedRole) {
-                return next({ status: 403, message: "Forbidden" });
             }
 
             req.user = user;

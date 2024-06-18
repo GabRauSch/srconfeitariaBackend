@@ -24,7 +24,7 @@
 export type errorKey = 'internalServerError' | 'invalidDate' | 'notFound' | 'doesntBelong' | 'noRegister' 
 | 'noRegisterWithId' | 'missingAttributes' | 'invalidAttributes' | 'notCreated' 
 | 'alreadyExists' | 'notDeleted' | 'notUpdated' | 'notAuthorized' | 'imageNotUploaded' 
-| 'wrongCredential' | 'emailNotSent' | 'notSent' | 'databaseError' | 'invalid'
+| 'wrongCredential' | 'emailNotSent' | 'notSent' | 'databaseError' | 'invalid' | 'loginFailed' | 'temporaryUser' | 'dataTaken'
 
 export const errorsTypes = {
     databaseError: {
@@ -33,6 +33,25 @@ export const errorsTypes = {
         errorType: 'Database',
         status: 400
     },
+    dataTaken: {
+        code: 126,
+        message: "Data is taken for $1",
+        errorType: 'Auth',
+        status: 400,
+    },
+    temporaryUser: {
+        code: 126,
+        message: "Temporary user cannot $1",
+        errorType: 'Auth',
+        status: 400
+    },
+    loginFailed: {
+        code: 120,
+        message: `Login failed`,
+        errorType: 'Auth',
+        status: 400
+    },
+
     internalServerError: {
         code: 117,
         message: "Internal server error caused when $1",
@@ -84,7 +103,7 @@ export const errorsTypes = {
     },
     invalidAttributes: {
         code: 145,
-        message: `Invalid attributes $2`,
+        message: `Invalid attributes $1`,
         errorType: 'InOut',
         status: 400
     },
