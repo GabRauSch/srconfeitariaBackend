@@ -20,7 +20,8 @@ import  PlanPayments from './routes/PlanPayments';
 import  Plans from './routes/Plans';
 import  Products from './routes/Products';
 import Users from './routes/Users';
-import Categories from './routes/Categories'
+import Categories from './routes/Categories';
+import Analytics from './routes/Analytics'
 
 if(process.env.ENV == 'HOMOLOG'){
     syncDatabases()
@@ -47,7 +48,8 @@ app.use('/orders', Orders)
 app.use('/planPayments', PlanPayments)
 app.use('/plans', Plans)
 app.use('/products', Products)
-app.use('/users', Users)
+app.use('/users', Users);
+app.use('/analytics', Analytics)
 
 
 app.use((req: Request, res: Response)=>{

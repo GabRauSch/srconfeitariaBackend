@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { ClientsController } from "../controllers/ClientsController";
+import AnalyticsController from "../controllers/AnalyticsController";
 
 const router = Router();
 
-router.get('/:userId')
+router.get('/:userId', AnalyticsController.getResults)
 
 export default router

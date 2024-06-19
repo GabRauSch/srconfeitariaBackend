@@ -43,6 +43,8 @@ type ReturnCause = {
 type success = {
     success: boolean
 }
+
+type AnalyticsData = {id: string, title: string, value: number, format: string}
 export class Users extends Model implements UserAttributes{
     public id!: number;
     public planId!: number;
@@ -85,6 +87,44 @@ export class Users extends Model implements UserAttributes{
             });
             if(!user) return PatternResponses.createError('invalidAttributes', ['email e/ou confirmationCode'])
             return user
+        } catch (error) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
+        }
+    }
+    static async getResults(userId: number): Promise<AnalyticsData[] | CustomError>{
+        try {
+            const query = `
+            SELECT 
+                COALESCE(SUM(o.value), 0) AS invoice,
+                COALESCE(COUNT(o.id), 0) AS sales,
+                COALESCE(SUM(CASE WHEN o.orderStatus = 1 THEN 1 ELSE 0 END), 0) AS pendentOrders,
+                COALESCE(SUM(CASE WHEN o.delivered IS NULL THEN 1 ELSE 0 END), 0) AS pendentDeliveries,
+                COALESCE(COUNT(DISTINCT c.id), 0) AS newClients,
+                COALESCE(SUM(CASE WHEN op.paidValue IS NULL THEN 1 ELSE 0 END), 0) AS pendentPayments
+            FROM users u
+            LEFT JOIN orders o ON o.userId = u.id AND MONTH(o.createdAt) = MONTH(CURRENT_DATE()) AND YEAR(o.createdAt) = YEAR(CURRENT_DATE())
+            LEFT JOIN clients c ON c.userId = u.id AND MONTH(c.createdAt) = MONTH(CURRENT_DATE()) AND YEAR(c.createdAt) = YEAR(CURRENT_DATE())
+            LEFT JOIN orderpayments op ON op.orderId = o.id AND MONTH(op.paymentDate) = MONTH(CURRENT_DATE()) AND YEAR(op.paymentDate) = YEAR(CURRENT_DATE())
+            WHERE u.id = :userId;`;
+            const data: any = await sequelize.query(query, {
+                replacements: {userId},
+                type: QueryTypes.SELECT
+            })
+
+            if(!data) return PatternResponses.createError('noRegister', ['analytic'])
+            const { invoice, sales, pendentOrders, pendentDeliveries, pendentPayments, newClients } = data[0];
+
+            const formatedData: AnalyticsData[] = [
+                { id: '1', title: 'Faturamento', value: parseFloat(invoice), format: 'currency' },
+                { id: '2', title: 'Vendas', value: parseInt(sales), format: 'count' },
+                { id: '3', title: 'Pedidos Pendentes', value: parseInt(pendentOrders), format: 'count' },
+                { id: '4', title: 'Entregas Pendentes', value: parseInt(pendentDeliveries), format: 'count' },
+                { id: '5', title: 'Novos Clientes', value: parseInt(newClients), format: 'operation' },
+                { id: '6', title: 'Pagamentos Pendentes', value: parseInt(pendentPayments), format: 'count' }
+            ];
+
+            return formatedData
         } catch (error) {
             console.error(error);
             return PatternResponses.createError('databaseError')
