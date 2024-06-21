@@ -99,9 +99,9 @@ export class Users extends Model implements UserAttributes{
                 COALESCE(SUM(o.value), 0) AS invoice,
                 COALESCE(COUNT(o.id), 0) AS sales,
                 COALESCE(SUM(CASE WHEN o.orderStatus = 1 THEN 1 ELSE 0 END), 0) AS pendentOrders,
-                COALESCE(SUM(CASE WHEN o.delivered IS NULL THEN 1 ELSE 0 END), 0) AS pendentDeliveries,
+                COALESCE(SUM(CASE WHEN o.delivered IS NULL THEN 0 ELSE 1 END), 0) AS pendentDeliveries,
                 COALESCE(COUNT(DISTINCT c.id), 0) AS newClients,
-                COALESCE(SUM(CASE WHEN op.paidValue IS NULL THEN 1 ELSE 0 END), 0) AS pendentPayments
+                COALESCE(SUM(CASE WHEN op.paidValue IS NULL THEN 0 ELSE 1 END), 0) AS pendentPayments
             FROM users u
             LEFT JOIN orders o ON o.userId = u.id AND MONTH(o.createdAt) = MONTH(CURRENT_DATE()) AND YEAR(o.createdAt) = YEAR(CURRENT_DATE())
             LEFT JOIN clients c ON c.userId = u.id AND MONTH(c.createdAt) = MONTH(CURRENT_DATE()) AND YEAR(c.createdAt) = YEAR(CURRENT_DATE())

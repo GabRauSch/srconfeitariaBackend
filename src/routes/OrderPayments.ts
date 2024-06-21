@@ -7,6 +7,7 @@ const router = Router();
 router.use(privateRoute)
 
 router.get('/:orderId', OrderPaymentsController.getByOrderId)
+router.get('/user/:userId', OrderPaymentsController.getByUserId)
 router.post('/', OrderPaymentsController.create)
 router.delete('/:orderId', OrderPaymentsController.delete)
 

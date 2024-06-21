@@ -70,6 +70,26 @@ export class OrderPayments extends Model implements OrderPaymentsAttributes{
             return PatternResponses.createError('databaseError')
         }
     }
+
+    static async findByUserId(userId: number): Promise<OrderPayment[] | CustomError>{
+        try {
+            const query = `
+              	SELECT c.name, p.id, p.value, p.dueDate FROM orderpayments p 
+                    JOIN orders o ON p.orderId = o.id
+                    JOIN clients c ON c.id = o.clientId
+                WHERE o.userId = :userId AND p.paidValue IS NULL`;  
+            const data: any[] = await sequelize.query(query, {
+                replacements: {userId},
+                type: QueryTypes.SELECT
+            })
+
+            if(data.length == 0) return PatternResponses.createError('noRegister', ['orderPayment'])
+            return data
+        } catch (error: any) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
+        }
+    }
     static async createOrderPayment(data: any): Promise<customSuccess | CustomError>{
         try {
             const transaction = await sequelize.transaction();

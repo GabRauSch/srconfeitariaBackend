@@ -24,6 +24,21 @@ export class OrderPaymentsController {
         return res.json(orderData)
     }
 
+    static async getByUserId(req: Request, res: Response, next: NextFunction){
+        const {userId} = req.params;
+
+        const {error} = idValidation.validate(userId)
+        if (error){
+            return next({error: error.details[0].message})
+        } 
+
+        const orderData = await OrderPayments.findByUserId(parseInt(userId));
+
+        if('error' in orderData) return next(orderData)
+        return res.json(orderData)
+    }
+
+
     static async getById(req: Request, res: Response, next: NextFunction){
         const {id} = req.params;
 
