@@ -49,6 +49,7 @@ export class ClientsController {
         if(!('error' in clientExists)) 
             return res.json(PatternResponses.createError('alreadyExists', ['client', 'name']))
 
+        console.log(data)
         const client = await Clients.create(data);
         
         if(!client) return res.json(PatternResponses.createError('notCreated', ['Client']))

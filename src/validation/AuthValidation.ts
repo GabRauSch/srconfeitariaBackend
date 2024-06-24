@@ -21,7 +21,7 @@ export const loginValidation = Joi.object({
 })
 
 export const redefinePassowrdValidation = Joi.object({
-    email: Joi.string().required()
+    email: Joi.string().required(),
 })
 export const confirmRedefinePasswordValidation = Joi.object({
     password: Joi.string().required(),

@@ -8,6 +8,8 @@ import sequelize from '../config/mysql';
 import { idValidation } from '../validation/GlobalValidation';
 import { Sequelize } from 'sequelize';
 import { generateConfirmationCode } from '../utils/generator';
+import PlanPayments from '../models/PlanPayments';
+import { addMonths } from 'date-fns';
 class AuthController {    
     static async register(req: Request, res: Response, next: NextFunction){
         const data = req.body;
@@ -37,21 +39,30 @@ class AuthController {
                 transaction
             });
 
-            console.log('caralho')
             if(rowsAffected == 0) {
                 transaction.rollback()
-                return PatternResponses.createError('notUpdated', ['temporary user'])
+                return next(PatternResponses.createError('notUpdated', ['temporary user']))
             }
 
             const user = await Users.findOne({where: {email: data.email}, attributes: ['id']})
-            if(!user) return PatternResponses.createError('noRegister', ['temporaryUser'])
+            if(!user) return next(PatternResponses.createError('noRegister', ['temporaryUser']))
             userId = user.id
         } 
         if('error' in userExists){
-            const userCreation = await Users.createTemporaryUser({...data, confirmationCode, passwordHash}, transaction)
+            const userCreation = await Users.createTemporaryUser({...data, confirmationCode, passwordHash, planId: 1}, transaction)
             if('error' in userCreation){
                 transaction.rollback()
                 return next(userCreation)
+            }
+            const planData = {
+                userId: userCreation.id,
+                planId: userCreation.planId,
+                dueDate: addMonths(new Date(), 1)
+            }
+            const planPayments = await PlanPayments.create({transaction})
+            if(!planPayments) {
+                transaction.rollback()
+                return next(PatternResponses.createError('notCreated', ['plan payment']))
             }
         }
 
@@ -104,7 +115,7 @@ class AuthController {
         if('error' in user) return next(user)
 
         const passwordHash = generateHash(data.password);   
-        const updatedUser = await Users.update({passwordHash}, {where: {id: userId}});
+        const updatedUser = await Users.update({passwordHash, confirmationCode: null}, {where: {id: userId}});
         if('error' in updatedUser){
             transaction.rollback()
             return next(updatedUser)

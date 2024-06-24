@@ -3,6 +3,8 @@ import { Model, DataTypes, QueryTypes, Op, Transaction, QueryOptionsTransactionR
 import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
 import { userPermission } from "../mapping/userPermission";
+import PlanPayments from "./PlanPayments";
+import { addMonths } from "date-fns";
 
 export interface UserAttributes {
     id: number,
@@ -59,9 +61,18 @@ export class Users extends Model implements UserAttributes{
 
     static async findById(userId: number){
         try {
-            const user = await Users.findByPk(userId, {attributes: ['id', 'name','acceptedTerms', 'email', 'planId', 'phone', 'userPermission']})
-            if(!user) return PatternResponses.createError('noRegister', ['user'])
-            return user
+            const query = `
+            SELECT u.id, u.planId, u.name, u.email, u.acceptedTerms, u.phone, u.userPermission, 
+                pp.dueDate, pp.paymentDate FROM users u
+            JOIN planpayments	pp ON u.id = pp.userId
+            WHERE u.id = 1
+            ORDER BY paymentDate LIMIT 1`
+            const user = await sequelize.query(query, {
+                replacements: {userId},
+                type: QueryTypes.SELECT
+            })
+            if(!user.length) return PatternResponses.createError('noRegister', ['user'])
+            return user[0]
         } catch (error) {
             console.error(error);
             return PatternResponses.createError('databaseError')
@@ -337,5 +348,26 @@ Users.init({
     tableName: 'users',
     timestamps: true
 });
+
+Users.addHook('afterFind', async (result: any, { transaction }) => {
+    try {
+        const payment = await PlanPayments.findOne({where: {userId: result.id}, order: ['dueDate'], limit: 1})
+        if(payment && payment.paymentDate){
+            const data = {
+                userId: payment.userId,
+                planId: payment.planId,
+                dueDate: addMonths(payment.dueDate, 1)
+            }
+            const newPayments = await PlanPayments.create()
+        }
+        if(!payment && (new Date().getTime() - new Date(result.createdAt).getTime()) >= (30 * 24 * 60 * 60 * 1000)){
+            console.log('vagabundo já ta a mais de um mês')
+        }
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+});
+
 
 export default Users

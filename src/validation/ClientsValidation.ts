@@ -3,10 +3,10 @@ import Joi from "joi";
 export const clientCreationValidation = Joi.object({
     userId: Joi.number().min(1).required(),
     name: Joi.string().min(1).max(20).required(),
-    phone: Joi.string().max(14),
+    phone: Joi.string().max(14).required(),
     email: Joi.string().email(),
     birthday: Joi.date(),
-    postalCode: Joi.number().min(8).max(8),
+    address: Joi.string(),
     local: Joi.object({
         latitude: Joi.number(),
         longitude: Joi.number()

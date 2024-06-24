@@ -5,15 +5,19 @@ import PatternResponses from "../utils/PatternResponses";
 
 export interface PlanPaymentAttributes {
     id: number,
+    userId: number,
     planId: number,
-    date: Date,
-    value: number
+    dueDate: Date,
+    paymentDate: Date,
+    value: number,
 }
 
 export class PlanPayments extends Model implements PlanPaymentAttributes {
     public id!: number;
+    public userId!: number;
     public planId!: number;
-    public date!: Date;
+    public dueDate!: Date;
+    public paymentDate!: Date;
     public value!: number;
 
     static async findByOrderId(orderId: number): Promise<PlanPayments[] | CustomError> {
@@ -36,6 +40,14 @@ PlanPayments.init({
         primaryKey: true,
         autoIncrement: true
     },
+    userId: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: {
+            model: 'Users',
+            key: 'id'
+        }
+    },
     planId: {
         type: DataTypes.INTEGER,
         allowNull: false,
@@ -44,24 +56,20 @@ PlanPayments.init({
             key: 'id'
         }
     },
-    date: {
+    dueDate: {
         type: DataTypes.DATE,
         allowNull: false
     },
+    paymentDate: DataTypes.DATE,
     value: {
         type: DataTypes.INTEGER,
         allowNull: false
-    },
-    createdAt: {
-        type: DataTypes.DATE,
-        allowNull: false,
-        defaultValue: DataTypes.NOW
     }
 }, {
     sequelize,
     modelName: 'PlanPayments',
     tableName: 'planPayments',
-    timestamps: false
+    timestamps: true
 });
 
 export default PlanPayments

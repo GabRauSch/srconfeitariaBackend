@@ -34,7 +34,7 @@ export class Clients extends Model implements ClientsAttributes{
     static async findByUserId(userId: number): Promise<Clients[] | CustomError> {
         try {
             const query = `SELECT c.id, 
-            name, 
+            name, email, address,
             MIN(CASE WHEN o.orderStatus IN (0, 1) THEN o.deliveryDate END) AS nextDeliveryDate,
             CASE WHEN phone IS NULL THEN 'Número não cadastrado' 
                  ELSE phone END AS phone, 
