@@ -8,8 +8,12 @@ import Plans from "../models/Plans";
 import Products from "../models/Products";
 import Configs  from "../models/Configs";
 import Categories from "../models/Categories";
+import PlanDiscounts from "../models/PlanDiscounts";
+import ApplicableDiscounts from "../models/ApplicableDisocunts";
 
 export const syncDatabases = ()=>{
+    PlanDiscounts.sync();
+    ApplicableDiscounts.sync()
     Plans.sync();
     Users.sync();
     Categories.sync();

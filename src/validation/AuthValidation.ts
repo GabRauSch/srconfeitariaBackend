@@ -12,7 +12,8 @@ export const registerValidation = Joi.object({
 
 export const confirmRegisterValidation = Joi.object({
     email: Joi.string().required(),
-    confirmationCode: Joi.string().required()
+    confirmationCode: Joi.string().required(),
+    code: Joi.string()
 })
 
 export const loginValidation = Joi.object({

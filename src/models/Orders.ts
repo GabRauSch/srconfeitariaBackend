@@ -5,6 +5,7 @@ import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
 import Users from "./Users";
 import OrderItems from "./OrderItems";
+import OrderPayments from "./OrderPayments";
 
 export interface OrderAttributes {
     id: number,
@@ -35,8 +36,9 @@ export class Orders extends Model implements OrderAttributes {
             SELECT 
                 o.deliveryDate AS deliveryDay, 
                 o.id AS orderId,
+                o.orderNumber as orderNumber,
                 o.orderStatus AS status, 
-                CAST(SUM(p.value * oi.quantity) AS DECIMAL(10, 2)) AS value, 
+                CAST(SUM(oi.value * oi.quantity) AS DECIMAL(10, 2)) AS value, 
                 c.id AS clientId, 
                 c.name AS client,
                 JSON_ARRAYAGG(JSON_OBJECT(
@@ -90,7 +92,8 @@ export class Orders extends Model implements OrderAttributes {
             }
     
             const orderItems = await OrderItems.createWithProducts(order.userId, order.id, products, transaction);
-    
+            if('error' in orderItems) return orderItems
+
             if (!orderItems) {
                 await transaction.rollback();
                 return PatternResponses.createError('notCreated', ['orderItems']);
@@ -137,7 +140,6 @@ export class Orders extends Model implements OrderAttributes {
     }
     static async updateValue(orderId: any, transaction: any){
         try {
-            console.log('not even here')
             const query = 
                 `SELECT SUM(COALESCE(oi.value, p.value) * oi.quantity) AS value FROM orderitems oi
                     JOIN orders o ON o.id = oi.orderId
@@ -149,7 +151,6 @@ export class Orders extends Model implements OrderAttributes {
                 transaction
             })
             const value = result[0]['value']
-            console.log(value)
             const order = await Orders.update({value}, {where: {id: orderId}, transaction});
     
             if(!order) return PatternResponses.createError('notUpdated', ['order']);
@@ -249,5 +250,32 @@ Orders.addHook('beforeCreate', async (order: any, { transaction }) => {
       throw error;
     }
   });
+
+
+  Orders.addHook('beforeBulkDestroy', async (options: any) => {
+    const transaction = options.transaction;
+    const userId = options.where && options.where.userId;
+
+    if (!userId) {
+        throw new Error('Missing userId in bulk delete operation');
+    }
+
+    const orders = await Orders.findAll({ where: options.where, transaction});
+    const orderIds = orders.map(order => order.id);
+
+    if (orderIds.length === 0) {
+        console.log('No orders found for userId:', userId);
+        throw PatternResponses.createError('noRegister', ['orders']);
+    }
+
+    try {
+        await OrderItems.destroy({ where: { orderId: orderIds }, transaction: options.transaction });
+        await OrderPayments.destroy({ where: { orderId: orderIds }, transaction: options.transaction });
+        console.log('successfully  deleted OrderPayments and orderItems')
+    } catch (error) {
+        console.error('Error deleting OrderItems:', error);
+        throw PatternResponses.createError('notDeleted', ['orderItems']);
+    }
+});
 
 export default Orders

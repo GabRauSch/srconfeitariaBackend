@@ -62,17 +62,26 @@ export class OrdersController {
         }
         const { products, ...orderData } = data;
 
+        if(!orderData.value) {
+            const value = products.reduce((a: number, b: any)=>(a + (b.value * b.quantity)), 0);
+            console.log('value', value)
+            orderData.value = value
+        }
         if (!orderData.orderStatus) orderData.orderStatus = 0;
 
         const isClientActive = await Clients.findById(data.clientId);
+        
         if ('error' in isClientActive || !isClientActive.active) {
-            return res.json(PatternResponses.createError('invalid', ['client', "doesn't exist or is inactive"]));
+            return next(PatternResponses.createError('invalid', ['client', "doesn't exist or is inactive"]));
+        }
+
+        if(isClientActive.userId !== data.userId) {
+            return next(PatternResponses.createError('invalid', ['clientId', 'belongs to another user']))
         }
 
         const order = await Orders.createOrder(orderData, products);
-        if ('error' in order) return next(PatternResponses.createError('notCreated', ['Order']));
+        if ('error' in order) return next(order);
 
-        console.log(order);
         return res.json(order);
     }
 
@@ -108,10 +117,10 @@ export class OrdersController {
         if('error' in order) return next(order);
 
         const orderItemsDelete = await OrderItems.destroyByOrderId(parseInt(id));
-        if('error' in orderItemsDelete) return res.json(PatternResponses.createError('notDeleted', ['OrderItems']))
+        if('error' in orderItemsDelete) return next(PatternResponses.createError('notDeleted', ['OrderItems']))
 
         const orderDelete = await Orders.destroy({where: {id}})
-        if(!orderDelete) return res.json(PatternResponses.createError('notDeleted', ['Order']))
+        if(!orderDelete) return next(PatternResponses.createError('notDeleted', ['Order']))
 
         return res.json(PatternResponses.createSuccess('deleted'))
     }

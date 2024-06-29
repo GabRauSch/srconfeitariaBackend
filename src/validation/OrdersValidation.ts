@@ -8,9 +8,9 @@ export const orderCreation = Joi.object({
     deliveryCost: Joi.number(),
     orderStatus: Joi.number().min(0).max(2),
     products: Joi.array().items(Joi.object({
-        id: Joi.number(),
-        quantity: Joi.number(),
-        value: Joi.number()
+        id: Joi.number().required(),
+        quantity: Joi.number().required(),
+        value: Joi.number().required()
     })).required()
 })
 export const orderUpdateValidation = Joi.object({

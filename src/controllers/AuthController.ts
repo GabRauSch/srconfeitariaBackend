@@ -9,7 +9,19 @@ import { idValidation } from '../validation/GlobalValidation';
 import { Sequelize } from 'sequelize';
 import { generateConfirmationCode } from '../utils/generator';
 import PlanPayments from '../models/PlanPayments';
-import { addMonths } from 'date-fns';
+import { addMonths, constructNow } from 'date-fns';
+import Plans from '../models/Plans';
+import Products from '../models/Products';
+import PlanDiscounts from '../models/PlanDiscounts';
+
+type PlanData = {
+    userId: number
+    planId: number
+    dueDate: Date,
+    value: number
+    discountId?: number
+}
+
 class AuthController {    
     static async register(req: Request, res: Response, next: NextFunction){
         const data = req.body;
@@ -20,18 +32,18 @@ class AuthController {
         } 
 
         const transaction = await sequelize.transaction()
-        const nameTaken = await Users.nameTaken(data.name, transaction);
-        if(nameTaken){
+        const nameTaken = await Users.findByName(data.name, transaction);
+        if(!('error' in nameTaken)){
             transaction.rollback()
             return next(PatternResponses.createError('dataTaken', ['name'], 'Nome já pertence a um usuário'))
-        }         
+        }
 
         const userExists = await Users.userByEmail(data.email, transaction)
         const passwordHash = generateHash(data.password)
         const confirmationCode = generateConfirmationCode(5);
 
-        console.log(confirmationCode)
         let userId;
+
 
         if(!('error' in userExists) && userExists.email == data.email){
             const [rowsAffected] = await Users.update({...data, confirmationCode, passwordHash}, {
@@ -47,22 +59,14 @@ class AuthController {
             const user = await Users.findOne({where: {email: data.email}, attributes: ['id']})
             if(!user) return next(PatternResponses.createError('noRegister', ['temporaryUser']))
             userId = user.id
+            return res.json(user)
         } 
+
         if('error' in userExists){
             const userCreation = await Users.createTemporaryUser({...data, confirmationCode, passwordHash, planId: 1}, transaction)
             if('error' in userCreation){
                 transaction.rollback()
                 return next(userCreation)
-            }
-            const planData = {
-                userId: userCreation.id,
-                planId: userCreation.planId,
-                dueDate: addMonths(new Date(), 1)
-            }
-            const planPayments = await PlanPayments.create({transaction})
-            if(!planPayments) {
-                transaction.rollback()
-                return next(PatternResponses.createError('notCreated', ['plan payment']))
             }
         }
 
@@ -74,6 +78,7 @@ class AuthController {
             content: confirmationCode,
             receiver: data.email
         })
+
         const token = generateToken({id: userId})
         return res.json({
             message: "Temporary User created",
@@ -143,7 +148,35 @@ class AuthController {
             transaction.rollback()
             return next(updatedUser)
         }
-        transaction.commit()
+
+        const plan = await Plans.findByPk(user.planId);
+        if(!plan) return next(PatternResponses.createError('noRegister', ['plan']))
+
+            
+        const planData: PlanData = {
+            userId: user.id,
+            planId: user.planId,
+            dueDate: addMonths(new Date(), 1),
+            value: plan.planValue,
+        }
+
+        if(data.code){
+            const discount = await PlanDiscounts.findOne({where: {code: data.code}})
+            if(discount) {
+                planData.discountId = discount.id;
+                planData.value = planData.value - planData.value * discount.amount
+                discount.usedCount += 1;
+                discount.save()
+            }
+        }
+
+        const planPayments = await PlanPayments.create(planData, {transaction})
+        if(!planPayments) {
+            transaction.rollback()
+            return next(PatternResponses.createError('notCreated', ['plan payment']))
+        }
+
+        transaction.commit();
 
         return res.json(updatedUser)
     }

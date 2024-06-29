@@ -21,7 +21,9 @@ import  Plans from './routes/Plans';
 import  Products from './routes/Products';
 import Users from './routes/Users';
 import Categories from './routes/Categories';
-import Analytics from './routes/Analytics'
+import Analytics from './routes/Analytics';
+import Admin from './routes/Admin'
+import PlanDiscounts from './routes/PlanDiscount';
 
 if(process.env.ENV == 'HOMOLOG'){
     syncDatabases()
@@ -39,12 +41,14 @@ app.use(sessionConfig);
 app.use(express.json())
 
 app.use('/auth', Auth);
+app.use('/admin', Admin);
 app.use('/categories', Categories)
 app.use('/clients', Clients);
 app.use('/configs', Configs)
 app.use('/orderItems', OrderItems)
 app.use('/orderPayments', OrderPayments)
 app.use('/orders', Orders)
+app.use('/planDiscounts', PlanDiscounts)
 app.use('/planPayments', PlanPayments)
 app.use('/plans', Plans)
 app.use('/products', Products)
@@ -54,7 +58,7 @@ app.use('/analytics', Analytics)
 
 app.use((req: Request, res: Response)=>{
     res.status(404)
-    return PatternResponses.createError('notFound')
+    return res.json(PatternResponses.createError('notFound'))
 })
 
 app.use(errorHandler)

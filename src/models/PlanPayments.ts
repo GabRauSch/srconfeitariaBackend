@@ -7,6 +7,7 @@ export interface PlanPaymentAttributes {
     id: number,
     userId: number,
     planId: number,
+    discountId: number
     dueDate: Date,
     paymentDate: Date,
     value: number,
@@ -16,6 +17,7 @@ export class PlanPayments extends Model implements PlanPaymentAttributes {
     public id!: number;
     public userId!: number;
     public planId!: number;
+    public discountId!: number;
     public dueDate!: Date;
     public paymentDate!: Date;
     public value!: number;
@@ -56,15 +58,26 @@ PlanPayments.init({
             key: 'id'
         }
     },
+    discountId: {
+        type: DataTypes.INTEGER,
+        references: {
+            model: 'PlanDiscounts',
+            key: 'id'
+        },
+        allowNull: true
+    },
     dueDate: {
         type: DataTypes.DATE,
         allowNull: false
     },
     paymentDate: DataTypes.DATE,
     value: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.FLOAT,
         allowNull: false
-    }
+    },
+    paidValue: {
+        type: DataTypes.FLOAT,
+    },
 }, {
     sequelize,
     modelName: 'PlanPayments',

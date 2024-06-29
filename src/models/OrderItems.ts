@@ -4,6 +4,7 @@ import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
 import Product from "../models/Products";
 import Orders from "./Orders";
+import { customSuccess } from "../types/SuccessType";
 
 export interface OrderItemsAttributes {
     id: number,
@@ -70,7 +71,7 @@ export class OrderItems extends Model implements OrderItemsAttributes{
         }
     }
 
-    static async createWithProducts(userId: number, orderId: number, products: any[], transaction: any): Promise<boolean | CustomError> {
+    static async createWithProducts(userId: number, orderId: number, products: any[], transaction: any): Promise<customSuccess | CustomError> {
         try {
             for (const product of products) {
                 const productRecord = await Product.findOne({ where: { id: product.id, userId }, transaction });
@@ -78,7 +79,7 @@ export class OrderItems extends Model implements OrderItemsAttributes{
                     return PatternResponses.createError('invalid', ['product', "doesn't belong to the user"]);
                 }
     
-                const creation = await OrderItems.create({
+                const creation: OrderItems = await OrderItems.create({
                     orderId,
                     productId: product.id,
                     quantity: product.quantity,
@@ -87,8 +88,7 @@ export class OrderItems extends Model implements OrderItemsAttributes{
     
                 if (!creation) throw new Error();
             }
-    
-            return true;
+            return PatternResponses.createSuccess('created');
         } catch (error: any) {
             console.error(error);
             return PatternResponses.createError('databaseError');

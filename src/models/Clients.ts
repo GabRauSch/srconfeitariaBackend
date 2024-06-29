@@ -11,9 +11,8 @@ export interface ClientsAttributes {
     phone: string;
     email: string;
     birthday: Date;
-    postalCode: number;
-    local: Location;
-    active: boolean
+    address: string;
+    active: boolean;
 }
 export interface ClientsCreation extends Optional<Clients, 'id'> {}
 
@@ -24,9 +23,8 @@ export class Clients extends Model implements ClientsAttributes{
     public name!: string;
     public phone!: string;
     public email!: string;
-    public local!: Location;
+    public address!: string;
     public birthday!: Date;
-    public postalCode!: number;
     public permission!: number;
     public active!: boolean;
 
@@ -109,11 +107,11 @@ Clients.init({
     email: {
         type: DataTypes.STRING,
     },
+    address: {
+        type: DataTypes.STRING
+    },
     birthday: {
         type: DataTypes.DATE,
-    },
-    postalCode: {
-        type: DataTypes.INTEGER,
     },
     active: {
         type: DataTypes.BOOLEAN,

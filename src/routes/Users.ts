@@ -6,7 +6,8 @@ const router = Router();
 router.use(privateRoute)
 
 router.get('/:userId', UserController.getById)
-router.put('/:userId', UserController.update)
+router.put('/:userId', UserController.update);
+
 
 
 export default router

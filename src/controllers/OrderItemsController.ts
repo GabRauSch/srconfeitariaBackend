@@ -56,11 +56,8 @@ export class OrderItemsController {
     static async create(req: Request, res: Response, next: NextFunction){
         const data = req.body;
 
-        console.log(data)
-        
         const {error} = orderCreation.validate(data)
         if (error){
-            console.log(error)
             return next({error: error.details[0].message})
         } 
         const {products, ...orderData} = data;
@@ -96,18 +93,26 @@ export class OrderItemsController {
         } 
 
         const transaction = await sequelize.transaction();
-        const updatedOrderItems = await OrderItems.updateItems(parseInt(id), data, transaction);
+        const updatedOrderItems = await OrderItems.updateItems(parseInt(id), data.orderItems, transaction);
 
         if('error' in updatedOrderItems) {
             transaction.rollback()
             return next(updatedOrderItems)
         }
         const updatedOrder = await Orders.updateValue(parseInt(id), transaction);
-
         if('error' in updatedOrder) {
             transaction.rollback()
-            return next(updatedOrderItems)
+            return next(updatedOrder)
         }
+        try {
+            console.log(data.order.orderStatus)
+            await Orders.update({orderStatus: data.order.orderStatus}, {where: {id}, transaction});
+        } catch (error) {
+            console.error(error)
+            transaction.rollback()
+            return next(PatternResponses.createError('notUpdated', ['order']))
+        }
+
         transaction.commit()
 
         return res.json(PatternResponses.createSuccess('updated', ['orderItems']))

@@ -1,10 +1,14 @@
 import sequelize from "../config/mysql";
-import { Model, DataTypes, QueryTypes, Op, Transaction, QueryOptionsTransactionRequired } from "sequelize";
+import { Model, DataTypes, QueryTypes, Op, Transaction, QueryOptionsTransactionRequired, where } from "sequelize";
 import { CustomError } from "../types/ErrorType";
 import PatternResponses from "../utils/PatternResponses";
 import { userPermission } from "../mapping/userPermission";
 import PlanPayments from "./PlanPayments";
 import { addMonths } from "date-fns";
+import Plans from "./Plans";
+import { generateRefferalCode } from "../utils/generator";
+import PlanDiscounts, { DiscountData } from "./PlanDiscounts";
+import ApplicableDiscounts from "./ApplicableDisocunts";
 
 export interface UserAttributes {
     id: number,
@@ -16,7 +20,8 @@ export interface UserAttributes {
     active: boolean,
     phone: string,
     userPermission: userPermission,
-    acceptedTerms: boolean
+    acceptedTerms: boolean,
+    refferalCode: string
 }
 type UserCreation = {
     name: string,
@@ -46,7 +51,8 @@ type success = {
     success: boolean
 }
 
-type AnalyticsData = {id: string, title: string, value: number, format: string}
+type AnalyticsData = {id?: string, title: string, value: number, format: string, displayColor: 'positive' |'negative' |'neutral'}
+
 export class Users extends Model implements UserAttributes{
     public id!: number;
     public planId!: number;
@@ -58,14 +64,15 @@ export class Users extends Model implements UserAttributes{
     public phone!: string;
     public userPermission!: userPermission;
     public acceptedTerms!: boolean;
+    public refferalCode!: string;
 
     static async findById(userId: number){
         try {
             const query = `
             SELECT u.id, u.planId, u.name, u.email, u.acceptedTerms, u.phone, u.userPermission, 
                 pp.dueDate, pp.paymentDate FROM users u
-            JOIN planpayments	pp ON u.id = pp.userId
-            WHERE u.id = 1
+            LEFT JOIN planpayments	pp ON u.id = pp.userId
+            WHERE u.id = :userId
             ORDER BY paymentDate LIMIT 1`
             const user = await sequelize.query(query, {
                 replacements: {userId},
@@ -106,34 +113,72 @@ export class Users extends Model implements UserAttributes{
     static async getResults(userId: number): Promise<AnalyticsData[] | CustomError>{
         try {
             const query = `
-            SELECT 
-                COALESCE(SUM(o.value), 0) AS invoice,
-                COALESCE(COUNT(o.id), 0) AS sales,
-                COALESCE(SUM(CASE WHEN o.orderStatus = 1 THEN 1 ELSE 0 END), 0) AS pendentOrders,
-                COALESCE(SUM(CASE WHEN o.delivered IS NULL THEN 0 ELSE 1 END), 0) AS pendentDeliveries,
-                COALESCE(COUNT(DISTINCT c.id), 0) AS newClients,
-                COALESCE(SUM(CASE WHEN op.paidValue IS NULL THEN 0 ELSE 1 END), 0) AS pendentPayments
-            FROM users u
-            LEFT JOIN orders o ON o.userId = u.id AND MONTH(o.createdAt) = MONTH(CURRENT_DATE()) AND YEAR(o.createdAt) = YEAR(CURRENT_DATE())
-            LEFT JOIN clients c ON c.userId = u.id AND MONTH(c.createdAt) = MONTH(CURRENT_DATE()) AND YEAR(c.createdAt) = YEAR(CURRENT_DATE())
-            LEFT JOIN orderpayments op ON op.orderId = o.id AND MONTH(op.paymentDate) = MONTH(CURRENT_DATE()) AND YEAR(op.paymentDate) = YEAR(CURRENT_DATE())
-            WHERE u.id = :userId;`;
+            SELECT
+                (SELECT COALESCE(SUM(Orders.value), 0)
+                FROM Orders
+                WHERE Orders.userId = :userId
+                AND MONTH(Orders.deliveryDate) = MONTH(NOW()) 
+                AND YEAR(Orders.deliveryDate) = YEAR(NOW())) AS invoice,
+
+                (SELECT COALESCE(COUNT(*), 0)
+                FROM Orders
+                WHERE Orders.userId = :userId
+                AND MONTH(Orders.deliveryDate) = MONTH(NOW()) 
+                AND YEAR(Orders.deliveryDate) = YEAR(NOW())) AS sales,
+
+                (SELECT COALESCE(SUM(Products.productionCost * OrderItems.quantity), 0)
+                FROM OrderItems
+                INNER JOIN Products ON OrderItems.productId = Products.id
+                INNER JOIN Orders ON OrderItems.orderId = Orders.id
+                WHERE Orders.userId = :userId
+                AND MONTH(Orders.deliveryDate) = MONTH(NOW()) 
+                AND YEAR(Orders.deliveryDate) = YEAR(NOW())) AS totalCosts,
+
+                (SELECT COALESCE(COUNT(*), 0)
+                FROM Orders
+                WHERE Orders.userId = :userId
+                AND Orders.orderStatus != 2) AS pendentOrders,
+
+                (SELECT COALESCE(COUNT(*), 0)
+                FROM Orders
+                WHERE Orders.userId = :userId
+                AND Orders.delivered IS NULL) AS pendentDeliveries,
+
+                (SELECT COALESCE(COUNT(DISTINCT id), 0)
+                    FROM Clients
+                    WHERE userId = 1
+                    AND MONTH(createdAt) = MONTH(NOW()) 
+                    AND YEAR(createdAt) = YEAR(NOW())) AS newClients,
+
+                (SELECT COALESCE(COUNT(*), 0)
+                FROM OrderPayments
+                INNER JOIN Orders ON OrderPayments.orderId = Orders.id
+                WHERE Orders.userId = :userId
+                AND OrderPayments.paymentDate IS NULL) AS pendentPayments;
+            `;
             const data: any = await sequelize.query(query, {
                 replacements: {userId},
                 type: QueryTypes.SELECT
             })
 
             if(!data) return PatternResponses.createError('noRegister', ['analytic'])
-            const { invoice, sales, pendentOrders, pendentDeliveries, pendentPayments, newClients } = data[0];
+            const {invoice,totalCosts, sales, pendentOrders, pendentDeliveries, pendentPayments, newClients } = data[0];
 
+            const profit = parseFloat(invoice) - parseFloat(totalCosts);
+            const profitDisplayColor = profit > 0 ? ('positive') : (profit == 0 ? 'neutral': 'negative')
             const formatedData: AnalyticsData[] = [
-                { id: '1', title: 'Faturamento', value: parseFloat(invoice), format: 'currency' },
-                { id: '2', title: 'Vendas', value: parseInt(sales), format: 'count' },
-                { id: '3', title: 'Pedidos Pendentes', value: parseInt(pendentOrders), format: 'count' },
-                { id: '4', title: 'Entregas Pendentes', value: parseInt(pendentDeliveries), format: 'count' },
-                { id: '5', title: 'Novos Clientes', value: parseInt(newClients), format: 'operation' },
-                { id: '6', title: 'Pagamentos Pendentes', value: parseInt(pendentPayments), format: 'count' }
+                {title: 'Faturamento', value: parseFloat(invoice), format: 'currency' , displayColor: 'positive'},
+                {title: 'Custos', value: parseFloat(totalCosts), format: 'currency', displayColor: 'negative'},
+                {title: 'Lucro', value: profit, format: 'currency', displayColor: profitDisplayColor},
+                {title: 'Pedidos Pendentes', value: parseInt(pendentOrders), format: 'count' , displayColor: 'neutral'},
+                {title: 'Entregas Pendentes', value: parseInt(pendentDeliveries), format: 'count' , displayColor: 'neutral'},
+                {title: 'Pagamentos Pendentes', value: parseInt(pendentPayments), format: 'count' , displayColor: 'negative'},
+                {title: 'Vendas', value: parseInt(sales), format: 'count' , displayColor: 'neutral'},
+                {title: 'Novos Clientes', value: parseInt(newClients), format: 'operation' , displayColor: 'neutral'},
             ];
+            formatedData.forEach((el, key)=>{
+                el.id = (key + 1).toString();
+            })
 
             return formatedData
         } catch (error) {
@@ -157,14 +202,15 @@ export class Users extends Model implements UserAttributes{
             return PatternResponses.createError('databaseError')
         }
     }
-    static async nameTaken(name: string, transaction: Transaction): Promise<boolean | CustomError>{
+    static async findByName(name: string, transaction: Transaction): Promise<Users | CustomError>{
         try {
             const user = await Users.findOne({
                 where: {name},
                 transaction
             })
-            if(user) return true
-            return false
+
+            if(!user) return PatternResponses.createError('noRegister', ['user']);
+            return user
         } catch (error) {
             console.error(error)
             return PatternResponses.createError('databaseError')
@@ -231,10 +277,11 @@ export class Users extends Model implements UserAttributes{
                 transaction
             })
 
-            if(!creation) return PatternResponses.createError('notCreated', ['user'])
+            console.log('creation', creation)
+            if(!creation) return PatternResponses.createError('notCreated', ['user']);
             return creation
         } catch(e) {
-            console.log(e)
+            console.log('ue', e)
             return PatternResponses.createError('databaseError')
         }
     }
@@ -290,6 +337,18 @@ export class Users extends Model implements UserAttributes{
     //         return false
     //     }
     // }
+
+    static async findRefferalCode(userId: number): Promise<{refferalCode: string} | CustomError>{
+        try {
+            const user = await Users.findByPk(userId);
+            if(!user) return PatternResponses.createError('noRegister', ['user']); 
+            const refferalCode = user.refferalCode
+            return {refferalCode}
+        } catch (error) {
+            console.error(error);
+            return PatternResponses.createError('databaseError')
+        }
+    }
 }
 
 Users.init({
@@ -341,6 +400,9 @@ Users.init({
         type: DataTypes.BOOLEAN,
         allowNull: false,
         defaultValue: false
+    },
+    refferalCode: {
+        type: DataTypes.STRING,
     }
 }, {
     sequelize,
@@ -350,18 +412,31 @@ Users.init({
 });
 
 Users.addHook('afterFind', async (result: any, { transaction }) => {
+    if(!result) return
     try {
-        const payment = await PlanPayments.findOne({where: {userId: result.id}, order: ['dueDate'], limit: 1})
+        const payment = await PlanPayments.findOne({where: {userId: result.id}, order: [['dueDate', 'desc']]});
         if(payment && payment.paymentDate){
+            const plan = await Plans.findOne({where: {id: payment.planId}});
+            if(!plan) throw PatternResponses.createError('internalServerError')
             const data = {
                 userId: payment.userId,
                 planId: payment.planId,
-                dueDate: addMonths(payment.dueDate, 1)
+                dueDate: addMonths(payment.dueDate, 1),
+                value: plan.planValue
             }
-            const newPayments = await PlanPayments.create()
+            const newPayments = await PlanPayments.create(data);
+            if(!newPayments) throw PatternResponses.createError('notCreated', ['payment'])
         }
         if(!payment && (new Date().getTime() - new Date(result.createdAt).getTime()) >= (30 * 24 * 60 * 60 * 1000)){
-            console.log('vagabundo já ta a mais de um mês')
+            const plan = await Plans.findOne({where: {id: result.planId}});
+            if(!plan) throw PatternResponses.createError('internalServerError')
+            const data = {
+                userId: result.userId,
+                planId: result.planId,
+                dueDate: addMonths(result.dueDate, 1),
+                value: plan.planValue
+            }
+            const newPayments = await PlanPayments.create(data);
         }
     } catch (error) {
         console.error(error);
@@ -369,5 +444,27 @@ Users.addHook('afterFind', async (result: any, { transaction }) => {
     }
 });
 
+
+Users.addHook('afterCreate', async (result: any, {transaction})=>{
+    try {
+        const refferalCode = generateRefferalCode(result);
+        result.refferalCode = refferalCode;
+        await result.save({ transaction });
+
+        const discount = await ApplicableDiscounts.findByDescription('Código de confeiteira', transaction as Transaction);
+        if('error' in discount) throw discount;
+
+        const data: DiscountData = {
+            code: refferalCode, 
+            userId: result.id, 
+            applicableDiscountId: discount.id,
+            amount: discount.amount
+        }
+        await PlanDiscounts.createDiscount(data, transaction as Transaction)        
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }
+})
 
 export default Users
