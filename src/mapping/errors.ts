@@ -66,7 +66,7 @@ export const errorsTypes = {
     },
     notFound: {
         code: 114,
-        message: `Not found $1`,
+        message: `Not found`,
         errorType: 'Server',
         status: 404
     },

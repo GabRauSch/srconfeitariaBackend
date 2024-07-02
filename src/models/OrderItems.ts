@@ -219,4 +219,23 @@ OrderItems.addHook('beforeCreate', async (orderItem: any, { transaction }) => {
     }
 });
 
+Orders.addHook('afterCreate', async (order: any, {transaction})=>{
+    try {
+        Orders.updateValue(order.id, transaction);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }   
+})
+
+
+Orders.addHook('afterUpdate', async (order: any, {transaction})=>{
+    try {
+        Orders.updateValue(order.id, transaction);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }   
+})
+
 export default OrderItems;

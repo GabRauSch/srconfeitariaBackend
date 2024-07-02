@@ -238,11 +238,11 @@ Orders.init({
 Orders.addHook('beforeCreate', async (order: any, { transaction }) => {
     try {
      
-    const lastOrder = await Orders.findOne({
-        where: { userId: order.userId },
-        order: [['createdAt', 'DESC']],
-        transaction,
-      });
+        const lastOrder = await Orders.findOne({
+            where: { userId: order.userId },
+            order: [['createdAt', 'DESC']],
+            transaction,
+        });
   
       (order as OrderAttributes).orderNumber = (lastOrder?.orderNumber ?? 0) + 1;
     } catch (error: any) {
@@ -251,6 +251,24 @@ Orders.addHook('beforeCreate', async (order: any, { transaction }) => {
     }
   });
 
+Orders.addHook('afterCreate', async (order: any, {transaction})=>{
+    try {
+        Orders.updateValue(order.id, transaction);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }   
+})
+
+
+Orders.addHook('afterUpdate', async (order: any, {transaction})=>{
+    try {
+        Orders.updateValue(order.id, transaction);
+    } catch (error) {
+        console.error(error);
+        throw error;
+    }   
+})
 
   Orders.addHook('beforeBulkDestroy', async (options: any) => {
     const transaction = options.transaction;

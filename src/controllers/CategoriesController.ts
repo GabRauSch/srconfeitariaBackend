@@ -4,7 +4,7 @@ import { clientCreationValidation, clientUpdateValidation } from "../validation/
 import PatternResponses from "../utils/PatternResponses";
 import Clients from "../models/Clients";
 import Categories from "../models/Categories";
-import { categoryCreation } from "../validation/CategoryValidation";
+import { categoryCreation, categoryUpdate } from "../validation/CategoryValidation";
 import { errorKey } from "../mapping/errors";
 
 export class CategoriesController {
@@ -32,8 +32,28 @@ export class CategoriesController {
         }
 
         try {
-            await Categories.create(data);
-            return res.json(PatternResponses.createSuccess('created'));
+            const newCategory = await Categories.create(data);
+            if(!newCategory) return next(PatternResponses.createError('notCreated', ['category']));
+            return res.json(newCategory)
+        } catch (error) {
+            if('message' in (error as any) && (error as any).message == 'alreadyExists') 
+                return next(PatternResponses.createError((error as any).message as errorKey, ['Category', 'description']))
+            return next(error);
+        }
+    }
+    static async update(req: Request, res: Response, next: NextFunction){
+        const {id} = req.params;
+        const data = req.body;
+
+        console.log(id, data)
+        const {error} = categoryUpdate.validate(data);
+        if(error){
+            return next({error: error.details[0].message})
+        }
+
+        try {
+            await Categories.update(data, {where: {id}});
+            return res.json(PatternResponses.createSuccess('updated', ['category']));
         } catch (error) {
             if('message' in (error as any) && (error as any).message == 'alreadyExists') 
                 return next(PatternResponses.createError((error as any).message as errorKey, ['Category', 'description']))

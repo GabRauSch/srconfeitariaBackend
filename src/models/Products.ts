@@ -46,7 +46,7 @@ export class Products extends Model implements ProductAttributes{
         try {
             const query = `SELECT p.id, p.name, p.description, 
             p.value,
-            p.productionCost, c.description as category,
+            p.productionCost, c.id as categoryId,
             p.productionCost
             FROM products p
             JOIN categories c on c.id = p.categoryId
